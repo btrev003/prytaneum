@@ -1,0 +1,13 @@
+{
+    "name": "@app/moderation-algo",
+    "scripts": {
+        "build": "./build.sh",
+        "dev": "./run.sh"
+    },
+    "dependencies": {
+        
+    },
+    "devDependencies": {
+        
+    }
+}
