@@ -384,6 +384,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@app/moderation-algo@workspace:app/moderation-algo":
+  version: 0.0.0-use.local
+  resolution: "@app/moderation-algo@workspace:app/moderation-algo"
+  languageName: unknown
+  linkType: soft
+
 "@app/proxy@workspace:app/proxy":
   version: 0.0.0-use.local
   resolution: "@app/proxy@workspace:app/proxy"

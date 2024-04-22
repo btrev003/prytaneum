@@ -41,6 +41,10 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         "reference": "workspace:app/gcp-service"\
       },\
       {\
+        "name": "@app/moderation-algo",\
+        "reference": "workspace:app/moderation-algo"\
+      },\
+      {\
         "name": "@app/proxy",\
         "reference": "workspace:app/proxy"\
       },\
@@ -57,6 +61,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
       ["@app/docs", ["workspace:app/docs"]],\
       ["@app/e2e", ["workspace:app/e2e"]],\
       ["@app/gcp-service", ["workspace:app/gcp-service"]],\
+      ["@app/moderation-algo", ["workspace:app/moderation-algo"]],\
       ["@app/proxy", ["workspace:app/proxy"]],\
       ["@app/server", ["workspace:app/server"]],\
       ["prytaneum", ["workspace:."]]\
@@ -503,6 +508,15 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["tsconfig-paths", "npm:3.14.1"],\
             ["typescript", "patch:typescript@npm%3A4.7.4#~builtin<compat/typescript>::version=4.7.4&hash=a1c5e5"],\
             ["uuid", "npm:8.3.2"]\
+          ],\
+          "linkType": "SOFT"\
+        }]\
+      ]],\
+      ["@app/moderation-algo", [\
+        ["workspace:app/moderation-algo", {\
+          "packageLocation": "./app/moderation-algo/",\
+          "packageDependencies": [\
+            ["@app/moderation-algo", "workspace:app/moderation-algo"]\
           ],\
           "linkType": "SOFT"\
         }]\
