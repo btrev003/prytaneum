@@ -5,8 +5,13 @@ from googleapiclient.discovery import build
 
 def InitPerspectiveAPI(folder=''):
     "Retrieve my API key and set an environmental variable to it"
-    folder = os.path.dirname(os.path.abspath(__file__)) + '/' # Folder of this script
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = folder + 'MyPersonalKeyAPI/secret' # Personal key
+    filepath = os.path.dirname(os.path.abspath(__file__)) + '/Keys/secret.json' # Folder of this script
+    # Only set the credentials if the file exists
+    if(os.path.isfile(filepath)):
+        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = filepath # Personal key
+        print('Google API key set to: ' + os.environ['GOOGLE_APPLICATION_CREDENTIALS'])
+    else:
+        print('Google API key not found at: ' + filepath)
 
 def GetToxicityScores(text: str, force=False) -> dict:
     """Get the toxicity scores of a given piece of text from Perspective API.
@@ -49,6 +54,8 @@ def GetToxicityScores(text: str, force=False) -> dict:
         }
         response = client.comments().analyze(body=analyze_request).execute()
     
+        # Create the cache folder if it does not exist
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
         # Output the response to cache if it has not been executed before
         with open(filepath, 'w') as f:
             f.write(json.dumps(response))
