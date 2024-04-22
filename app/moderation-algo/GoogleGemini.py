@@ -65,6 +65,8 @@ def AskGoogleGemini(model: str, prompt: str, max_output_tokens=1024, force=False
             probability = safety_rating.probability.name
             safety_ratings[category] = probability
         
+        # Create the cache folder if it does not exist
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
         # Output the response and its safety ratings to cache if it has not been executed before
         with open(filepath, 'w') as f:
             f.write(response)
