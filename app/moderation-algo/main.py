@@ -6,6 +6,7 @@ from AlgoStages.substantiveness import IsSubstantive
 from AlgoStages.offensiveness import IsOffensive
 from AlgoStages.relevance import IsRelevant
 from AlgoStages.classifyQuestion import DoesQuestionFitCategory
+from PerspectiveAPI import InitPerspectiveAPI
 
 app = Flask(__name__)
 
@@ -74,4 +75,5 @@ def HandleUserInput():
         return jsonify({'ERROR': 'Request must be in JSON format'}), 415 # HTTP unsupported media type
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    InitPerspectiveAPI()
+    app.run(debug=True, host='0.0.0.0', port=9989)
