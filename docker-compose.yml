@@ -17,12 +17,15 @@ services:
             DATABASE_URL: postgresql://postgres:postgrespassword@db:5432
             REDIS_HOST: redis-server
             REDIS_PORT: 6379
+            MODERATION_URL: http://moderation-algo:9989/ # Port based on internal port
         depends_on:
             - db
             - redis-server
+            - moderation-algo
         links:
             - db
             - redis-server
+            - moderation-algo
     db:
         container_name: db
         user: postgres
@@ -65,8 +68,19 @@ services:
             - 5555:5555
         depends_on:
             - db
+    moderation-algo:
+        container_name: moderation-algo
+        build: ./app/moderation-algo/
+        working_dir: /app
+        volumes:
+            - moderation_algo_data:/app
+        environment:
+            NODE_ENV: development
+        ports:
+            - 5000:9989
 
 volumes:
     db_data:
     redis_data:
     redis_conf:
+    moderation_algo_data:
