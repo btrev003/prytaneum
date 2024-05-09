@@ -1,79 +1,204 @@
 from flask import Flask, request, jsonify
-import GoogleGemini as gemini
-from AlgoStages.analyzeReadingMaterials import ExtractIssueFromReadingMaterials as GetIssue
-from AlgoStages.analyzeReadingMaterials import ExtractCategoriesDescriptions as GetTopics
+from waitress import serve
+from TopicExtraction.analyzeReadingMaterials import ExtractIssueFromReadingMaterials, ExtractTopicsDescriptions
+from TopicExtraction.extractTopicsInteractive import Lock, Unlock, Rename, Add, Remove, Regenerate
 from AlgoStages.substantiveness import IsSubstantive
 from AlgoStages.offensiveness import IsOffensive
 from AlgoStages.relevance import IsRelevant
 from AlgoStages.classifyQuestion import DoesQuestionFitCategory
+from Translation.translation import TranslateText
 from PerspectiveAPI import InitPerspectiveAPI
+import redis
+import json
 
 app = Flask(__name__)
-
-def GetIssueTopics(reading_materials: str) -> dict:
-    """Extracts the overall issue and the topics with descriptions from the given reading materials.
-    @issue (str) = Broad issue that the reading materials discuss (Ex: 'modernizing congress')
-    @topics (dict) = Dict of topics and their descriptions extracted from the reading materials {'topic': 'description', ...}
-    @Return: {'issue': issue, 'topics': topics}"""
-    # Make sure Google API is initialized
-    model = 'gemini-pro'
-    gemini.InitGoogleGemini()
-    issue = GetIssue(model, reading_materials)
-    topics = GetTopics(model, reading_materials)
-    return {'issue': issue, 'topics': topics}
 
 def ProcessQuestion(issue: str, topics: dict, question: str) -> dict:
     """Process a question through the algorithm and return the results from each stage as a dict.
     @Param: issue = Broad issue that the town hall is about (Ex: 'modernizing congress')
     @Param: question = User question or comment to process
-    @Return: results = {'substantive': bool, 'offensive': bool, 'relevant': bool, 'topics': {'topic0': bool, 'topic1': bool, ...}}"""
-    # NOTE: Make sure Google API is initialized (Ex: set env variable GOOGLE_APPLICATION_CREDENTIALS to filepath with API key)
+    @Return: response = {'substantive': bool, 'offensive': bool, 'relevant': bool, 'topics': {'topic0': bool, 'topic1': bool, ...}}"""
+    # Make sure Google API is initialized
     model = 'gemini-pro'
 
-    # Process the question through the algo
-    response = {'substantive': False, 'offensive': False, 'relevant': False, 'topics': {}}
+    # First translate the question into English and Spanish. The algorithm is built to process on English questions
+    question_en, question_es, original_lang = TranslateText(question)
+
+    # Process the question through the algo and return the following fields
+    response = {
+        'question_en': question_en,
+        'question_es': question_es,
+        'original_lang': original_lang,
+        'substantive': False,
+        'offensive': False,
+        'relevant': False,
+        'topics': {},
+    }
 
     # Check for substantiveness
-    response['substantive'] = IsSubstantive(model, question)
-    if(not response['substantive']):
-        return response
+    response['substantive'] = IsSubstantive(model, question_en)
 
     # Check for offensiveness
-    response['offensive'] = IsOffensive(question)
-    if(response['offensive']):
+    response['offensive'] = IsOffensive(question_en)
+
+    # Don't bother with further processing if the question is unsubstantive or offensive
+    if(response['offensive'] or not response['substantive']):
         return response
 
-    # Check for relevancy
-    response['relevant'] = IsRelevant(model, question, issue)
+    # Check for relevancy if an issue was provided
+    if(issue):
+        response['relevant'] = IsRelevant(model, question_en, issue)
 
-    # Classify into topics
-    for topic, description in topics.items():
-        response['topics'][topic] = DoesQuestionFitCategory(model, question, topic, description)
+    # Classify into topics if any were provided
+    if(topics):
+        for topic, description in topics.items():
+            response['topics'][topic] = DoesQuestionFitCategory(model, question_en, topic, description)
 
     return response
+
+def ConnectToRedis() -> redis.Redis:
+    "Establish a connection to Redis for temporary persistent memory. Returns the connection object."
+    REDIS_HOST='localhost'
+    REDIS_PORT=6379
+    REDIS_USERNAME='default'
+    REDIS_PASSWORD='redispassword'
+    return redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT, username=REDIS_USERNAME, password=REDIS_PASSWORD,
+                             charset='utf-8', decode_responses=True)
 
 @app.route('/', methods=['POST'])
 def HandleUserInput():
     # Check if the request contains JSON data
     if request.is_json:
-        print(request)
-        # If reading materials are provided, return their discussed issue and topics / descriptions
-        reading_materials = request.get_json().get("reading_materials")
-        if(reading_materials):
-            return jsonify(GetIssueTopics(reading_materials)), 200 # HTTP success
+        # NOTE: Make sure Google API is initialized at this point
+        model = 'gemini-pro'
 
-        # Otherwise, 
-        issue = request.get_json().get("issue") # Get overall issue (Ex: 'modernizing congress')
-        topics = request.get_json().get("topics") # All possible topics and their description {'topic': 'description', ...}
-        question = request.get_json().get("question") # Get the user question/comment
-        if(question and issue and topics):
-            # Process user question through the algorithm and return output
+        # Connect to Redis with a week expiration time
+        secInAWeek = 604800
+        r = ConnectToRedis()
+
+        # Decode which stage the request is going to
+        stage = request.get_json().get('stage')
+
+        # Stage 1: Extract the overall issue and the topics and definitions from reading materials
+        if(stage == 'extraction'):
+            # Extract and issue and topics for later use
+            reading_materials = request.get_json().get('reading_materials')
+            if(not reading_materials):
+                return jsonify({'ERROR': 'Missing field "reading_materials" in request data'}), 422 # HTTP unprocessable Entity
+            issue = ExtractIssueFromReadingMaterials(model, reading_materials)
+            topics = ExtractTopicsDescriptions(model, reading_materials)
+
+            # Save them for later use, expiring in a week
+            r.set('moderation_issue', issue, ex=secInAWeek)
+            r.set('moderation_topics', json.dumps(topics), ex=secInAWeek)
+            r.set('moderation_reading_materials', reading_materials, ex=secInAWeek)
+
+            # Construct and return the response
+            response = {
+                'issue': issue,
+                'topics': topics
+            }
+            return jsonify(response), 200 # HTTP success
+
+        # Stage 2: Interactively finalize the set of topics and definitions.
+        elif(stage == 'interactive'):
+            # At this point, the extracted topics and list of locked topics should already be available in Redis
+            # If lockedTopics does not exist, create a new empty list for it
+            lockedTopics = r.get('moderation_lockedTopics')
+            if(lockedTopics):
+                lockedTopics = json.loads(lockedTopics)
+            else:
+                lockedTopics = []
+                r.set('moderation_lockedTopics', json.dumps(lockedTopics))
+            topics = json.loads(r.get('moderation_topics'))
+            if(not topics):
+                return jsonify({'ERROR': 'Unable to find value(s) in stored data. Please rerun Stages 1 and 2.'}), 400 # HTTP bad request
+            
+            # Perform the user designated action
+            action = request.get_json().get('action')
+            if(not action):
+                return jsonify({'ERROR': 'Missing field "action" in request data'}), 422 # HTTP unprocessable Entity
+            action = action.lower()
+            
+            if(action == 'lock'):
+                selectedTopic = request.get_json().get('selected_topic')
+                if(not selectedTopic):
+                    return jsonify({'ERROR': 'Missing field(s) in request data'}), 422 # HTTP unprocessable Entity
+                topics, lockedTopics, error = Lock(topics, lockedTopics, selectedTopic)
+
+            elif(action == 'unlock'):
+                selectedTopic = request.get_json().get('selected_topic')
+                if(not selectedTopic):
+                    return jsonify({'ERROR': 'Missing field(s) in request data'}), 422 # HTTP unprocessable Entity
+                topics, lockedTopics, error = Unlock(topics, lockedTopics, selectedTopic)
+
+            elif(action == 'rename'):
+                selectedTopic = request.get_json().get('selected_topic')
+                newTopic = request.get_json().get('new_topic')
+                newDefinition = request.get_json().get('new_definition')
+                if(not selectedTopic or not newTopic or not newDefinition):
+                    return jsonify({'ERROR': 'Missing field(s) in request data'}), 422 # HTTP unprocessable Entity
+                topics, lockedTopics, error = Rename(topics, lockedTopics, selectedTopic, newTopic, newDefinition)
+
+            elif(action == 'add'):
+                newTopic = request.get_json().get('new_topic')
+                newDefinition = request.get_json().get('new_definition')
+                if(not newTopic or not newDefinition):
+                    return jsonify({'ERROR': 'Missing field(s) in request data'}), 422 # HTTP unprocessable Entity
+                topics, lockedTopics, error = Add(topics, lockedTopics, newTopic, newDefinition)
+
+            elif(action == 'remove'):
+                selectedTopic = request.get_json().get('selected_topic')
+                if(not selectedTopic):
+                    return jsonify({'ERROR': 'Missing field(s) in request data'}), 422 # HTTP unprocessable Entity
+                topics, lockedTopics, error = Remove(topics, lockedTopics, selectedTopic)
+
+            elif(action == 'regenerate'):
+                reading_materials = r.get('moderation_reading_materials')
+                if(not reading_materials):
+                    return jsonify({'ERROR': 'Unable to find value(s) in stored data. Please rerun Stages 1 and 2.'}), 400 # HTTP bad request
+                topics, lockedTopics, error = Regenerate(topics, lockedTopics, reading_materials)
+            
+            else:
+                return jsonify({'ERROR': 'Invalid field "action" in request data'}), 422 # HTTP unprocessable Entity
+
+            # Check if there were any errors
+            if(error == 'input'):
+                return jsonify({'ERROR': 'Invalid input: Selected topic does not exist'}), 422 # HTTP unprocessable Entity
+            elif(error == 'duplicate'):
+                return jsonify({'ERROR': 'Invalid input: Provided topic already exists'}), 422 # HTTP unprocessable Entity
+
+            # Save the topics and locked topics to redis
+            r.set('moderation_topics', json.dumps(topics), ex=secInAWeek)
+            r.set('moderation_lockedTopics', json.dumps(lockedTopics), ex=secInAWeek)
+
+            # Construct and return the response
+            response = {
+                'topics': topics,
+                'locked_topics': lockedTopics
+            }
+            return jsonify(response), 200 # HTTP success
+
+        # Stage 3: Process a question through the moderation algorithm
+        elif(stage == 'moderation'):
+            # At this point, the issue and topics should already be available in Redis
+            issue = r.get('moderation_issue')
+            topics = json.loads(r.get('moderation_topics'))
+            if(not issue or not topics):
+                return jsonify({'ERROR': 'Unable to find value(s) in stored data. Please rerun Stages 1 and 2.'}), 400 # HTTP bad request
+
+            # Process the question and return the response
+            question = request.get_json().get("question") # Get the user question/comment
+            if(not question):
+                return jsonify({'ERROR': 'Missing or invalid field "question" in request data'}), 422 # HTTP unprocessable Entity
             return jsonify(ProcessQuestion(issue, topics, question)), 200 # HTTP success
+
         else:
-            return jsonify({'ERROR': 'Missing field(s) in request data'}), 400 # HTTP bad request
+            return jsonify({'ERROR': 'Missing or invalid field "stage" in request data'}), 422 # HTTP unprocessable Entity
     else:
         return jsonify({'ERROR': 'Request must be in JSON format'}), 415 # HTTP unsupported media type
 
 if __name__ == '__main__':
+    # Initialize Google API before starting the app
     InitPerspectiveAPI()
-    app.run(debug=True, host='0.0.0.0', port=9989)
+    serve(app, host='0.0.0.0', port=5000)
