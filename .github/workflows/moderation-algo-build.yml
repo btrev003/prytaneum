@@ -20,16 +20,11 @@ jobs:
               with:
                   node-version: '18'
 
-            - name: Yarn Install
-              run: yarn install
-
-            - name: Change directory
-              run: cd app/moderation-algo
-
             - name: Docker build
               run: |-
                   docker build \
-                    -f ./ \
+                    -f ./app/moderation-algo/Dockerfile \
+                    --build-arg REQUIREMENTS_FILE="./app/moderation-algo/requirements.txt" \
                     --build-arg GITHUB_SHA="$GITHUB_SHA" \
                     --build-arg GITHUB_REF="$GITHUB_REF" \
                     .
