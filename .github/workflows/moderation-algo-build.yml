@@ -23,10 +23,13 @@ jobs:
             - name: Yarn Install
               run: yarn install
 
+            - name: Change directory
+              run: cd app/moderation-algo
+
             - name: Docker build
               run: |-
                   docker build \
-                    -f ./app/moderation-algo/Dockerfile \
+                    -f ./ \
                     --build-arg GITHUB_SHA="$GITHUB_SHA" \
                     --build-arg GITHUB_REF="$GITHUB_REF" \
                     .
