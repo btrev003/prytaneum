@@ -11,6 +11,7 @@ from PerspectiveAPI import InitPerspectiveAPI
 from Utilities.logEvents import LogEventConsole
 import redis
 import json
+import os
 
 app = Flask(__name__)
 
@@ -59,10 +60,10 @@ def ProcessQuestion(issue: str, topics: dict, question: str) -> dict:
 
 def ConnectToRedis() -> redis.Redis:
     "Establish a connection to Redis for temporary persistent memory. Returns the connection object."
-    REDIS_HOST='localhost'
-    REDIS_PORT=6379
-    REDIS_USERNAME='default'
-    REDIS_PASSWORD='redispassword'
+    REDIS_HOST = os.environ.get('REDIS_HOST')
+    REDIS_PORT = os.environ.get('REDIS_PORT')
+    REDIS_USERNAME = os.environ.get('REDIS_USERNAME')
+    REDIS_PASSWORD = os.environ.get('REDIS_PASSWORD')
     return redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT, username=REDIS_USERNAME, password=REDIS_PASSWORD,
                              charset='utf-8', decode_responses=True)
 
