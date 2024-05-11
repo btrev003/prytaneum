@@ -8,6 +8,7 @@ from AlgoStages.relevance import IsRelevant
 from AlgoStages.classifyQuestion import DoesQuestionFitCategory
 from Translation.translation import TranslateText
 from PerspectiveAPI import InitPerspectiveAPI
+from Utilities.logEvents import LogEventConsole
 import redis
 import json
 
@@ -65,6 +66,15 @@ def ConnectToRedis() -> redis.Redis:
     return redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT, username=REDIS_USERNAME, password=REDIS_PASSWORD,
                              charset='utf-8', decode_responses=True)
 
+def PrintRedisConnectionStatus():
+    "Print whether or not the app is able to connect to Redis"
+    r = ConnectToRedis()
+    try:
+        r.ping()
+        LogEventConsole('Connection to redis successful.')
+    except:
+        LogEventConsole('Connection to redis failed.', 'ERROR')
+
 @app.route('/', methods=['POST'])
 def HandleUserInput():
     # Check if the request contains JSON data
@@ -84,6 +94,7 @@ def HandleUserInput():
             # Extract and issue and topics for later use
             reading_materials = request.get_json().get('reading_materials')
             if(not reading_materials):
+                LogEventConsole('Missing field "reading_materials" in request data', 'ERROR')
                 return jsonify({'ERROR': 'Missing field "reading_materials" in request data'}), 422 # HTTP unprocessable Entity
             issue = ExtractIssueFromReadingMaterials(model, reading_materials)
             topics = ExtractTopicsDescriptions(model, reading_materials)
@@ -98,6 +109,7 @@ def HandleUserInput():
                 'issue': issue,
                 'topics': topics
             }
+            LogEventConsole('Successful run of Stage 1 "Extraction"')
             return jsonify(response), 200 # HTTP success
 
         # Stage 2: Interactively finalize the set of topics and definitions.
@@ -112,23 +124,27 @@ def HandleUserInput():
                 r.set('moderation_lockedTopics', json.dumps(lockedTopics))
             topics = json.loads(r.get('moderation_topics'))
             if(not topics):
+                LogEventConsole('Unable to find value(s) in stored data. Please rerun Stages 1 and 2.', 'ERROR')
                 return jsonify({'ERROR': 'Unable to find value(s) in stored data. Please rerun Stages 1 and 2.'}), 400 # HTTP bad request
             
             # Perform the user designated action
             action = request.get_json().get('action')
             if(not action):
+                LogEventConsole('Missing field "action" in request data', 'ERROR')
                 return jsonify({'ERROR': 'Missing field "action" in request data'}), 422 # HTTP unprocessable Entity
             action = action.lower()
             
             if(action == 'lock'):
                 selectedTopic = request.get_json().get('selected_topic')
                 if(not selectedTopic):
+                    LogEventConsole('Missing field(s) in request data', 'ERROR')
                     return jsonify({'ERROR': 'Missing field(s) in request data'}), 422 # HTTP unprocessable Entity
                 topics, lockedTopics, error = Lock(topics, lockedTopics, selectedTopic)
 
             elif(action == 'unlock'):
                 selectedTopic = request.get_json().get('selected_topic')
                 if(not selectedTopic):
+                    LogEventConsole('Missing field(s) in request data', 'ERROR')
                     return jsonify({'ERROR': 'Missing field(s) in request data'}), 422 # HTTP unprocessable Entity
                 topics, lockedTopics, error = Unlock(topics, lockedTopics, selectedTopic)
 
@@ -137,6 +153,7 @@ def HandleUserInput():
                 newTopic = request.get_json().get('new_topic')
                 newDefinition = request.get_json().get('new_definition')
                 if(not selectedTopic or not newTopic or not newDefinition):
+                    LogEventConsole('Missing field(s) in request data', 'ERROR')
                     return jsonify({'ERROR': 'Missing field(s) in request data'}), 422 # HTTP unprocessable Entity
                 topics, lockedTopics, error = Rename(topics, lockedTopics, selectedTopic, newTopic, newDefinition)
 
@@ -144,18 +161,21 @@ def HandleUserInput():
                 newTopic = request.get_json().get('new_topic')
                 newDefinition = request.get_json().get('new_definition')
                 if(not newTopic or not newDefinition):
+                    LogEventConsole('Missing field(s) in request data', 'ERROR')
                     return jsonify({'ERROR': 'Missing field(s) in request data'}), 422 # HTTP unprocessable Entity
                 topics, lockedTopics, error = Add(topics, lockedTopics, newTopic, newDefinition)
 
             elif(action == 'remove'):
                 selectedTopic = request.get_json().get('selected_topic')
                 if(not selectedTopic):
+                    LogEventConsole('Missing field(s) in request data', 'ERROR')
                     return jsonify({'ERROR': 'Missing field(s) in request data'}), 422 # HTTP unprocessable Entity
                 topics, lockedTopics, error = Remove(topics, lockedTopics, selectedTopic)
 
             elif(action == 'regenerate'):
                 reading_materials = r.get('moderation_reading_materials')
                 if(not reading_materials):
+                    LogEventConsole('Unable to find value(s) in stored data. Please rerun Stages 1 and 2.', 'ERROR')
                     return jsonify({'ERROR': 'Unable to find value(s) in stored data. Please rerun Stages 1 and 2.'}), 400 # HTTP bad request
                 topics, lockedTopics, error = Regenerate(topics, lockedTopics, reading_materials)
             
@@ -164,8 +184,10 @@ def HandleUserInput():
 
             # Check if there were any errors
             if(error == 'input'):
+                LogEventConsole('Invalid input: Selected topic does not exist', 'ERROR')
                 return jsonify({'ERROR': 'Invalid input: Selected topic does not exist'}), 422 # HTTP unprocessable Entity
             elif(error == 'duplicate'):
+                LogEventConsole('Invalid input: Provided topic already exists', 'ERROR')
                 return jsonify({'ERROR': 'Invalid input: Provided topic already exists'}), 422 # HTTP unprocessable Entity
 
             # Save the topics and locked topics to redis
@@ -177,6 +199,7 @@ def HandleUserInput():
                 'topics': topics,
                 'locked_topics': lockedTopics
             }
+            LogEventConsole('Successful run of Stage 2 "Interactive" with action: {}'.format(action))
             return jsonify(response), 200 # HTTP success
 
         # Stage 3: Process a question through the moderation algorithm
@@ -185,20 +208,26 @@ def HandleUserInput():
             issue = r.get('moderation_issue')
             topics = json.loads(r.get('moderation_topics'))
             if(not issue or not topics):
-                return jsonify({'ERROR': 'Unable to find value(s) in stored data. Please rerun Stages 1 and 2.'}), 400 # HTTP bad request
+                LogEventConsole('Unable to find value(s) in stored data. Please rerun Stages 1 and 2', 'ERROR')
+                return jsonify({'ERROR': 'Unable to find value(s) in stored data. Please rerun Stages 1 and 2'}), 400 # HTTP bad request
 
             # Process the question and return the response
             question = request.get_json().get("question") # Get the user question/comment
             if(not question):
+                LogEventConsole('Missing or invalid field "question" in request data', 'ERROR')
                 return jsonify({'ERROR': 'Missing or invalid field "question" in request data'}), 422 # HTTP unprocessable Entity
+            LogEventConsole('Successful run of Stage 3 "Moderation"')
             return jsonify(ProcessQuestion(issue, topics, question)), 200 # HTTP success
 
         else:
+            LogEventConsole('Missing or invalid field "stage" in request data', 'ERROR')
             return jsonify({'ERROR': 'Missing or invalid field "stage" in request data'}), 422 # HTTP unprocessable Entity
     else:
+        LogEventConsole('Request must be in JSON format', 'ERROR')
         return jsonify({'ERROR': 'Request must be in JSON format'}), 415 # HTTP unsupported media type
 
 if __name__ == '__main__':
     # Initialize Google API before starting the app
     InitPerspectiveAPI()
+    PrintRedisConnectionStatus()
     serve(app, host='0.0.0.0', port=5000)

@@ -5,6 +5,7 @@ cachetools==5.3.3
 certifi==2024.2.2
 charset-normalizer==3.3.2
 click==8.1.7
+DateTime==5.5
 Flask==3.0.3
 google-ai-generativelanguage==0.6.2
 google-api-core==2.19.0
@@ -45,3 +46,4 @@ uritemplate==4.1.1
 urllib3==2.2.1
 waitress==3.0.0
 Werkzeug==3.0.2
+zope.interface==6.3
