@@ -87,6 +87,12 @@ def HandleUserInput():
         secInAWeek = 604800
         r = ConnectToRedis()
 
+        # Get the event ID
+        eventId = request.get_json().get('eventId')
+        if(not eventId):
+            LogEventConsole('Missing or invalid field "eventId" in request data', 'ERROR')
+            return jsonify({'ERROR': 'Missing or invalid field "eventId" in request data'}), 422 # HTTP unprocessable Entity
+
         # Decode which stage the request is going to
         stage = request.get_json().get('stage')
 
@@ -101,9 +107,9 @@ def HandleUserInput():
             topics = ExtractTopicsDescriptions(model, reading_materials)
 
             # Save them for later use, expiring in a week
-            r.set('moderation_issue', issue, ex=secInAWeek)
-            r.set('moderation_topics', json.dumps(topics), ex=secInAWeek)
-            r.set('moderation_reading_materials', reading_materials, ex=secInAWeek)
+            r.set('moderation_issue_{}'.format(eventId), issue, ex=secInAWeek)
+            r.set('moderation_topics_{}'.format(eventId), json.dumps(topics), ex=secInAWeek)
+            r.set('moderation_reading_materials_{}'.format(eventId), reading_materials, ex=secInAWeek)
 
             # Construct and return the response
             response = {
@@ -117,13 +123,13 @@ def HandleUserInput():
         elif(stage == 'interactive'):
             # At this point, the extracted topics and list of locked topics should already be available in Redis
             # If lockedTopics does not exist, create a new empty list for it
-            lockedTopics = r.get('moderation_lockedTopics')
+            lockedTopics = r.get('moderation_lockedTopics_{}'.format(eventId))
             if(lockedTopics):
                 lockedTopics = json.loads(lockedTopics)
             else:
                 lockedTopics = []
-                r.set('moderation_lockedTopics', json.dumps(lockedTopics))
-            topics = json.loads(r.get('moderation_topics'))
+                r.set('moderation_lockedTopics_{}'.format(eventId), json.dumps(lockedTopics))
+            topics = json.loads(r.get('moderation_topics_{}'.format(eventId)))
             if(not topics):
                 LogEventConsole('Unable to find value(s) in stored data. Please rerun Stages 1 and 2.', 'ERROR')
                 return jsonify({'ERROR': 'Unable to find value(s) in stored data. Please rerun Stages 1 and 2.'}), 400 # HTTP bad request
@@ -174,7 +180,7 @@ def HandleUserInput():
                 topics, lockedTopics, error = Remove(topics, lockedTopics, selectedTopic)
 
             elif(action == 'regenerate'):
-                reading_materials = r.get('moderation_reading_materials')
+                reading_materials = r.get('moderation_reading_materials_{}'.format(eventId))
                 if(not reading_materials):
                     LogEventConsole('Unable to find value(s) in stored data. Please rerun Stages 1 and 2.', 'ERROR')
                     return jsonify({'ERROR': 'Unable to find value(s) in stored data. Please rerun Stages 1 and 2.'}), 400 # HTTP bad request
@@ -192,8 +198,8 @@ def HandleUserInput():
                 return jsonify({'ERROR': 'Invalid input: Provided topic already exists'}), 422 # HTTP unprocessable Entity
 
             # Save the topics and locked topics to redis
-            r.set('moderation_topics', json.dumps(topics), ex=secInAWeek)
-            r.set('moderation_lockedTopics', json.dumps(lockedTopics), ex=secInAWeek)
+            r.set('moderation_topics_{}'.format(eventId), json.dumps(topics), ex=secInAWeek)
+            r.set('moderation_lockedTopics_{}'.format(eventId), json.dumps(lockedTopics), ex=secInAWeek)
 
             # Construct and return the response
             response = {
@@ -206,8 +212,8 @@ def HandleUserInput():
         # Stage 3: Process a question through the moderation algorithm
         elif(stage == 'moderation'):
             # At this point, the issue and topics should already be available in Redis
-            issue = r.get('moderation_issue')
-            topics = json.loads(r.get('moderation_topics'))
+            issue = r.get('moderation_issue_{}'.format(eventId))
+            topics = json.loads(r.get('moderation_topics_{}'.format(eventId)))
             if(not issue or not topics):
                 LogEventConsole('Unable to find value(s) in stored data. Please rerun Stages 1 and 2', 'ERROR')
                 return jsonify({'ERROR': 'Unable to find value(s) in stored data. Please rerun Stages 1 and 2'}), 400 # HTTP bad request
