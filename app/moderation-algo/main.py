@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from waitress import serve
 from TopicExtraction.analyzeReadingMaterials import ExtractIssueFromReadingMaterials, ExtractTopicsDescriptions
-from TopicExtraction.extractTopicsInteractive import Lock, Unlock, Rename, Add, Remove, Regenerate
+from TopicExtraction.extractTopicsInteractive import Lock, LockMany, Unlock, UnlockMany, Rename, Add, Remove, RemoveMany, Regenerate
 from AlgoStages.substantiveness import IsSubstantive
 from AlgoStages.offensiveness import IsOffensive
 from AlgoStages.relevance import IsRelevant
@@ -147,6 +147,13 @@ def HandleUserInput():
                     LogEventConsole('Missing field(s) in request data', 'ERROR')
                     return jsonify({'ERROR': 'Missing field(s) in request data'}), 422 # HTTP unprocessable Entity
                 topics, lockedTopics, error = Lock(topics, lockedTopics, selectedTopic)
+            
+            if(action == 'lock_many'):
+                selectedTopics = request.get_json().get('selected_topics')
+                if(not selectedTopics):
+                    LogEventConsole('Missing field(s) in request data', 'ERROR')
+                    return jsonify({'ERROR': 'Missing field(s) in request data'}), 422 # HTTP unprocessable Entity
+                topics, lockedTopics, error = LockMany(topics, lockedTopics, selectedTopics)
 
             elif(action == 'unlock'):
                 selectedTopic = request.get_json().get('selected_topic')
@@ -154,6 +161,13 @@ def HandleUserInput():
                     LogEventConsole('Missing field(s) in request data', 'ERROR')
                     return jsonify({'ERROR': 'Missing field(s) in request data'}), 422 # HTTP unprocessable Entity
                 topics, lockedTopics, error = Unlock(topics, lockedTopics, selectedTopic)
+
+            elif(action == 'unlock_many'):
+                selectedTopics = request.get_json().get('selected_topics')
+                if(not selectedTopics):
+                    LogEventConsole('Missing field(s) in request data', 'ERROR')
+                    return jsonify({'ERROR': 'Missing field(s) in request data'}), 422 # HTTP unprocessable Entity
+                topics, lockedTopics, error = UnlockMany(topics, lockedTopics, selectedTopics)
 
             elif(action == 'rename'):
                 selectedTopic = request.get_json().get('selected_topic')
@@ -178,6 +192,13 @@ def HandleUserInput():
                     LogEventConsole('Missing field(s) in request data', 'ERROR')
                     return jsonify({'ERROR': 'Missing field(s) in request data'}), 422 # HTTP unprocessable Entity
                 topics, lockedTopics, error = Remove(topics, lockedTopics, selectedTopic)
+
+            elif(action == 'remove_many'):
+                selectedTopics = request.get_json().get('selected_topics')
+                if(not selectedTopics):
+                    LogEventConsole('Missing field(s) in request data', 'ERROR')
+                    return jsonify({'ERROR': 'Missing field(s) in request data'}), 422 # HTTP unprocessable Entity
+                topics, lockedTopics, error = RemoveMany(topics, lockedTopics, selectedTopics)
 
             elif(action == 'regenerate'):
                 reading_materials = r.get('moderation_reading_materials_{}'.format(eventId))
