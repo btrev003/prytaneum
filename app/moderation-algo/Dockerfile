@@ -21,7 +21,7 @@ RUN adduser -u 5678 --disabled-password --gecos "" appuser && chown -R appuser /
 USER appuser
 
 # TODO: Change this to the right port
-EXPOSE 9989
+EXPOSE 5000
 
 # During debugging, this entry point will be overridden. For more information, please refer to https://aka.ms/vscode-docker-python-debug
 CMD ["python", "main.py"]
