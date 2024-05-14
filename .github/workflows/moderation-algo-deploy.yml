@@ -1,4 +1,4 @@
-name: Deploy Server
+name: Deploy Moderation Algorithm
 
 on:
     push:
@@ -94,7 +94,7 @@ jobs:
                   kustomize edit set image gcr.io/PROJECT_ID/MODERATION_ALGO_IMAGE:TAG=gcr.io/$PROJECT_ID/$MODERATION_ALGO_IMAGE:$GITHUB_SHA
                   kustomize edit set namespace $NAMESPACE
                   kustomize build . | kubectl apply -f -
-            
+
             # Finalize Moderation Algo Deployment
             - name: Set kubectl context
               run: |-
