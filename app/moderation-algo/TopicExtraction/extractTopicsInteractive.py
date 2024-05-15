@@ -134,9 +134,9 @@ def Rename(allTopics: dict, lockedTopics: list, topic: str, newTopic: str, newDe
         'duplicate' = Duplicate input, meaning adding a topic that already exists.
     """
     # Validate user input before performing action
-    if(topic not in allTopics):
+    if(topic not in allTopics): # Selected topic does not exist
         return allTopics, lockedTopics, 'input'
-    if(newTopic in allTopics):
+    if(newTopic in allTopics and newDefn == allTopics[newTopic]): # Exact topic and definition already exists
         return allTopics, lockedTopics, 'duplicate'
     allTopics[newTopic] = newDefn
     if(newTopic not in lockedTopics):
