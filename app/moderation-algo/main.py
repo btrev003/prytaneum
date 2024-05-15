@@ -155,7 +155,7 @@ def HandleUserInput():
                     return jsonify({'ERROR': 'Missing field(s) in request data'}), 422 # HTTP unprocessable Entity
                 topics, lockedTopics, error = Lock(topics, lockedTopics, selectedTopic)
             
-            if(action == 'lock_many'):
+            elif(action == 'lock_many'):
                 selectedTopics = request.get_json().get('selected_topics')
                 if(not selectedTopics):
                     LogEventConsole('Missing field(s) in request data', 'ERROR')
@@ -215,6 +215,7 @@ def HandleUserInput():
                 topics, lockedTopics, error = Regenerate(topics, lockedTopics, reading_materials)
             
             else:
+                LogEventConsole('Invalid field "action" in request data', 'ERROR')
                 return jsonify({'ERROR': 'Invalid field "action" in request data'}), 422 # HTTP unprocessable Entity
 
             # Check if there were any errors
