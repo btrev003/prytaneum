@@ -73,6 +73,8 @@ services:
         build: ./app/moderation-algo/
         environment:
             NODE_ENV: development
+            REDIS_HOST: redis-server
+            REDIS_PORT: 6379
         ports:
             - 5000:5000
 
