@@ -90,7 +90,7 @@ def HandleUserInput():
         # NOTE: Make sure Google API is initialized at this point
         model = 'gemini-pro'
 
-        # Connect to Redis with a week expiration time
+        # Connect to Redis with a week expiration time for stored data
         secInAWeek = 604800
         r = ConnectToRedis()
 
@@ -117,6 +117,10 @@ def HandleUserInput():
             r.set('moderation_issue_{}'.format(eventId), issue, ex=secInAWeek)
             r.set('moderation_topics_{}'.format(eventId), json.dumps(topics), ex=secInAWeek)
             r.set('moderation_reading_materials_{}'.format(eventId), reading_materials, ex=secInAWeek)
+
+            # Issue a warning if no topics were returned
+            if(len(topics) == 0):
+                LogEventConsole('Could not extract any topics from the provided reading materials', 'WARNING')
 
             # Construct and return the response
             response = {

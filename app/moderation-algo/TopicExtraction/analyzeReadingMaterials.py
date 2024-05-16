@@ -35,7 +35,11 @@ def ExtractTopicsDescriptions(model: str, reading_materials: str, force=False) -
     response, safety_ratings = gemini.AskGoogleGemini(model, prompt, force=force)
     
     # Convert the response to python dict and return
-    allTopicsDesc = json.loads(response)
+    try:
+        allTopicsDesc = json.loads(response)
+    # If no topics were found, return an empty list
+    except:
+        allTopicsDesc = {}
     return allTopicsDesc
 
 def RegenerateTopicsDescriptions(model: str, reading_materials: str, lockedTopics: set, force=False) -> dict:
