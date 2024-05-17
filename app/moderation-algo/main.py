@@ -140,10 +140,13 @@ def HandleUserInput():
             else:
                 lockedTopics = []
                 r.set('moderation_lockedTopics_{}'.format(eventId), json.dumps(lockedTopics))
-            topics = json.loads(r.get('moderation_topics_{}'.format(eventId)))
+            
+            # If the list of topics does not exist then we have an error and need to rerun stage 1
+            topics = r.get('moderation_topics_{}'.format(eventId))
             if(not topics):
                 LogEventConsole('Unable to find value(s) in stored data. Please rerun Stages 1 and 2.', 'ERROR')
                 return jsonify({'ERROR': 'Unable to find value(s) in stored data. Please rerun Stages 1 and 2.'}), 400 # HTTP bad request
+            topics = json.loads(topics)
             
             # Perform the user designated action
             action = request.get_json().get('action')
@@ -217,6 +220,10 @@ def HandleUserInput():
                     LogEventConsole('Unable to find value(s) in stored data. Please rerun Stages 1 and 2.', 'ERROR')
                     return jsonify({'ERROR': 'Unable to find value(s) in stored data. Please rerun Stages 1 and 2.'}), 400 # HTTP bad request
                 topics, lockedTopics, error = Regenerate(topics, lockedTopics, reading_materials)
+
+                # Issue a warning if no topics were returned
+                if(len(topics) == 0):
+                    LogEventConsole('Could not regenerate any topics from the provided reading materials', 'WARNING')
             
             else:
                 LogEventConsole('Invalid field "action" in request data', 'ERROR')
