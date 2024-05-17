@@ -5,7 +5,8 @@ import json
 
 def ExtractIssueFromReadingMaterials(model: str, reading_materials: str, force=False) -> str:
     "Use Google Gemini to extract the overall topic that the given reading material discusses"
-    prompt = 'Write the overall topic that the following article deals with as a short phrase:\n'
+    prompt = 'Write the overall topic that the following article deals with as a short phrase. '
+    prompt += 'If it is impossible to find the overall topic, output "none":\n'
     prompt += 'Article: """' + reading_materials.replace('\n', ' ') + '"""\n'
     prompt += 'Topic:'
     
