@@ -253,10 +253,11 @@ def HandleUserInput():
         elif(stage == 'moderation'):
             # At this point, the issue and topics should already be available in Redis
             issue = r.get('moderation_issue_{}'.format(eventId))
-            topics = json.loads(r.get('moderation_topics_{}'.format(eventId)))
+            topics = r.get('moderation_topics_{}'.format(eventId))
             if(not issue or not topics):
                 LogEventConsole('Unable to find value(s) in stored data. Please rerun Stages 1 and 2', 'ERROR')
                 return jsonify({'ERROR': 'Unable to find value(s) in stored data. Please rerun Stages 1 and 2'}), 400 # HTTP bad request
+            topics = json.loads(topics)
 
             # Process the question and return the response
             question = request.get_json().get("question") # Get the user question/comment
