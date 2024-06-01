@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<94a266a848c7ac61a4d24f1534eece28>>
+ * @generated SignedSource<<f11ee07f3042cf7bbf04f213891d0665>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -14,7 +14,7 @@ export type EventSidebarFragment$data = {
   readonly id: string;
   readonly isQuestionFeedVisible: boolean | null;
   readonly isViewerModerator: boolean | null;
-  readonly " $fragmentSpreads": FragmentRefs<"QuestionCarouselFragment" | "SpeakerListFragment" | "useBroadcastMessageListFragment" | "useLiveFeedbackListFragment" | "useQuestionListFragment" | "useQuestionQueueFragment">;
+  readonly " $fragmentSpreads": FragmentRefs<"QuestionCarouselFragment" | "SpeakerListFragment" | "useBroadcastMessageListFragment" | "useLiveFeedbackListFragment" | "useOnDeckFragment" | "useQuestionListFragment" | "useQuestionQueueFragment">;
   readonly " $fragmentType": "EventSidebarFragment";
 };
 export type EventSidebarFragment$key = {
@@ -22,11 +22,23 @@ export type EventSidebarFragment$key = {
   readonly " $fragmentSpreads": FragmentRefs<"EventSidebarFragment">;
 };
 
-const node: ReaderFragment = {
+const node: ReaderFragment = (function(){
+var v0 = [
+  {
+    "kind": "Variable",
+    "name": "userLang",
+    "variableName": "lang"
+  }
+];
+return {
   "argumentDefinitions": [
     {
       "kind": "RootArgument",
       "name": "eventId"
+    },
+    {
+      "kind": "RootArgument",
+      "name": "lang"
     }
   ],
   "kind": "Fragment",
@@ -60,7 +72,7 @@ const node: ReaderFragment = {
       "name": "SpeakerListFragment"
     },
     {
-      "args": null,
+      "args": (v0/*: any*/),
       "kind": "FragmentSpread",
       "name": "useQuestionListFragment"
     },
@@ -70,12 +82,12 @@ const node: ReaderFragment = {
       "name": "useBroadcastMessageListFragment"
     },
     {
-      "args": null,
+      "args": (v0/*: any*/),
       "kind": "FragmentSpread",
       "name": "useQuestionQueueFragment"
     },
     {
-      "args": null,
+      "args": (v0/*: any*/),
       "kind": "FragmentSpread",
       "name": "QuestionCarouselFragment"
     },
@@ -89,12 +101,18 @@ const node: ReaderFragment = {
       ],
       "kind": "FragmentSpread",
       "name": "useLiveFeedbackListFragment"
+    },
+    {
+      "args": (v0/*: any*/),
+      "kind": "FragmentSpread",
+      "name": "useOnDeckFragment"
     }
   ],
   "type": "Event",
   "abstractKey": null
 };
+})();
 
-(node as any).hash = "f24286a7daf88bc6c623ec098faf2453";
+(node as any).hash = "b2ff2e162e8420e223f8f5587682a4b5";
 
 export default node;

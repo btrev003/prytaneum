@@ -29,11 +29,12 @@ export const EVENT_SIDEBAR_FRAGMENT = graphql`
         isQuestionFeedVisible
         isViewerModerator
         ...SpeakerListFragment
-        ...useQuestionListFragment
+        ...useQuestionListFragment @arguments(userLang: $lang)
         ...useBroadcastMessageListFragment
-        ...useQuestionQueueFragment
-        ...QuestionCarouselFragment
+        ...useQuestionQueueFragment @arguments(userLang: $lang)
+        ...QuestionCarouselFragment @arguments(userLang: $lang)
         ...useLiveFeedbackListFragment @arguments(eventId: $eventId)
+        ...useOnDeckFragment @arguments(userLang: $lang)
     }
 `;
 
@@ -136,10 +137,7 @@ export const EventSidebar = ({ fragmentRef, isViewerModerator, isLive, setIsLive
                     <StyledColumnGrid props={{ height: '250px' }}>
                         <Grid item justifyContent='center' width='100%'>
                             <ModeratorActions isLive={isLive} setIsLive={setIsLive} eventId={eventId} />
-                            <PreloadedParticipantsList
-                                eventId={data.id}
-                                isVisible={isViewerModerator && topTab === 'Moderator'}
-                            />
+                            <PreloadedParticipantsList eventId={data.id} />
                         </Grid>
                     </StyledColumnGrid>
                 </Grid>

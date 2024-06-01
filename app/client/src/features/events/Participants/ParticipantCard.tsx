@@ -1,7 +1,19 @@
 import * as React from 'react';
-import { Button, DialogContent, Grid, IconButton, Paper, Typography } from '@mui/material';
+import {
+    Avatar,
+    Button,
+    Card,
+    CardHeader,
+    DialogContent,
+    Grid,
+    IconButton,
+    Stack,
+    Tooltip,
+    Typography,
+} from '@mui/material';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import VolumeOffIcon from '@mui/icons-material/VolumeOff';
+import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 
 import { ResponsiveDialog, useResponsiveDialog } from '@local/components';
 import { useSnack } from '@local/core';
@@ -9,6 +21,7 @@ import { useMuteParticipant } from './useMuteParticipant';
 import { useEvent } from '../useEvent';
 import { useUnmuteParticipant } from './useUnmuteParticipant';
 import { Participant } from './ParticipantsList';
+import { getHashedColor } from '@local/core/getHashedColor';
 
 export interface ParticipantCardProps {
     participant: Participant;
@@ -22,61 +35,89 @@ export function ParticipantCard({ participant }: ParticipantCardProps) {
     const { displaySnack } = useSnack();
 
     function handleToggleParticipantMute() {
-        try {
-            if (!participant.isMuted)
-                muteParticipant({
-                    variables: { eventId, userId: participant.id },
-                    onCompleted(payload) {
-                        try {
-                            if (payload.muteParticipant.isError) throw new Error(payload.muteParticipant.message);
-                            close();
-                            displaySnack('Participant Muted', { variant: 'success' });
-                        } catch (err) {
-                            if (err instanceof Error) displaySnack(err.message, { variant: 'error' });
-                            else displaySnack('Something went wrong!');
-                        }
-                    },
-                });
-            else
-                unmuteParticipant({
-                    variables: { eventId, userId: participant.id },
-                    onCompleted(payload) {
-                        try {
-                            if (payload.unmuteParticipant.isError) throw new Error(payload.unmuteParticipant.message);
-                            close();
-                            displaySnack('Participant Unmuted', { variant: 'success' });
-                        } catch (err) {
-                            if (err instanceof Error) displaySnack(err.message, { variant: 'error' });
-                            else displaySnack('Something went wrong!');
-                        }
-                    },
-                });
-        } catch (err) {
-            if (err instanceof Error) displaySnack(err.message, { variant: 'error' });
-            else displaySnack('Something went wrong!');
-        }
+        if (!participant.isMuted)
+            muteParticipant({
+                variables: { eventId, userId: participant.id },
+                onCompleted(payload) {
+                    try {
+                        if (payload.muteParticipant.isError) throw new Error(payload.muteParticipant.message);
+                        close();
+                        displaySnack('Participant Muted', { variant: 'success' });
+                    } catch (err) {
+                        if (err instanceof Error) displaySnack(err.message, { variant: 'error' });
+                        else displaySnack('Something went wrong!');
+                    }
+                },
+                onError(err) {
+                    displaySnack(err.message, { variant: 'error' });
+                },
+            });
+        else
+            unmuteParticipant({
+                variables: { eventId, userId: participant.id },
+                onCompleted(payload) {
+                    try {
+                        if (payload.unmuteParticipant.isError) throw new Error(payload.unmuteParticipant.message);
+                        close();
+                        displaySnack('Participant Unmuted', { variant: 'success' });
+                    } catch (err) {
+                        if (err instanceof Error) displaySnack(err.message, { variant: 'error' });
+                        else displaySnack('Something went wrong!');
+                    }
+                },
+                onError(err) {
+                    displaySnack(err.message, { variant: 'error' });
+                },
+            });
     }
+
+    const authorName = React.useMemo(() => {
+        let _authorName = 'Unknown User';
+        if (participant.firstName) {
+            _authorName = participant.firstName;
+            if (participant.lastName) _authorName = `${_authorName} ${participant.lastName}`;
+        }
+        return _authorName;
+    }, [participant]);
+    const avatarColor = React.useMemo(() => {
+        return getHashedColor(authorName);
+    }, [authorName]);
 
     return (
         <React.Fragment>
-            <Paper style={{ width: '100%' }}>
-                <Grid container direction='row' alignItems='center' display='grid'>
-                    <Grid item justifySelf='center' width='50px'>
-                        <img src='/static/participant_icon.svg' alt='avatar' width='50px' height='50px' />
-                    </Grid>
-                    <Grid item maxWidth='200px' minWidth='100px' gridColumn='2/5'>
-                        <Typography variant='body1'>{participant.firstName + ' ' + participant.lastName}</Typography>
-                        <Typography variant='body2' color='text.secondary'>
-                            {participant.moderatorOf ? 'Moderator' : 'Participant'}
-                        </Typography>
-                    </Grid>
-                    <Grid item gridColumn='5/6' justifySelf='center' width='50px'>
-                        <IconButton disabled={participant.moderatorOf} onClick={open}>
-                            {participant.isMuted ? <VolumeOffIcon color='error' /> : <VolumeUpIcon color='success' />}
+            <Card style={{ width: '100%' }}>
+                <CardHeader
+                    avatar={<Avatar sx={{ bgcolor: avatarColor }}>{authorName[0]}</Avatar>}
+                    title={
+                        participant.moderatorOf ? (
+                            <Stack direction='row' alignItems='center'>
+                                <Tooltip title='Verified Moderator' placement='top'>
+                                    <VerifiedUserIcon
+                                        fontSize='small'
+                                        sx={{ color: (theme) => theme.palette.primary.main }}
+                                    />
+                                </Tooltip>
+                                {authorName}
+                            </Stack>
+                        ) : (
+                            authorName
+                        )
+                    }
+                    action={
+                        <IconButton onClick={open}>
+                            {participant.isMuted ? (
+                                <Tooltip title='Unmute Participant' placement='top'>
+                                    <VolumeOffIcon color='error' />
+                                </Tooltip>
+                            ) : (
+                                <Tooltip title='Mute Participant' placement='top'>
+                                    <VolumeUpIcon color='success' />
+                                </Tooltip>
+                            )}
                         </IconButton>
-                    </Grid>
-                </Grid>
-            </Paper>
+                    }
+                />
+            </Card>
             <ResponsiveDialog open={isOpen} onClose={close}>
                 <DialogContent>
                     <Typography variant='h6'>

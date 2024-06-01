@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<a8d5560f16b24da146b1e4df140c435a>>
+ * @generated SignedSource<<05a46d2320ab872480966b1be900e701>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -13,6 +13,7 @@ import { FragmentRefs } from "relay-runtime";
 export type useEnqueuedPushSubscription$variables = {
   connections: ReadonlyArray<string>;
   eventId: string;
+  lang: string;
 };
 export type useEnqueuedPushSubscription$data = {
   readonly enqueuedPushQuestion: {
@@ -20,7 +21,13 @@ export type useEnqueuedPushSubscription$data = {
       readonly cursor: string;
       readonly node: {
         readonly id: string;
+        readonly onDeckPosition: string;
         readonly position: string;
+        readonly topics: ReadonlyArray<{
+          readonly description: string;
+          readonly position: string;
+          readonly topic: string;
+        }> | null;
         readonly " $fragmentSpreads": FragmentRefs<"QuestionAuthorFragment" | "QuestionContentFragment" | "QuestionStatsFragment">;
       };
     };
@@ -42,28 +49,73 @@ v1 = {
   "kind": "LocalArgument",
   "name": "eventId"
 },
-v2 = [
+v2 = {
+  "defaultValue": null,
+  "kind": "LocalArgument",
+  "name": "lang"
+},
+v3 = [
   {
     "kind": "Variable",
     "name": "eventId",
     "variableName": "eventId"
   }
 ],
-v3 = {
+v4 = {
   "alias": null,
   "args": null,
   "kind": "ScalarField",
   "name": "id",
   "storageKey": null
 },
-v4 = {
+v5 = [
+  {
+    "kind": "Variable",
+    "name": "lang",
+    "variableName": "lang"
+  }
+],
+v6 = {
   "alias": null,
   "args": null,
   "kind": "ScalarField",
   "name": "position",
   "storageKey": null
 },
-v5 = {
+v7 = {
+  "alias": null,
+  "args": null,
+  "kind": "ScalarField",
+  "name": "onDeckPosition",
+  "storageKey": null
+},
+v8 = {
+  "alias": null,
+  "args": null,
+  "concreteType": "EventQuestionTopic",
+  "kind": "LinkedField",
+  "name": "topics",
+  "plural": true,
+  "selections": [
+    {
+      "alias": null,
+      "args": null,
+      "kind": "ScalarField",
+      "name": "topic",
+      "storageKey": null
+    },
+    {
+      "alias": null,
+      "args": null,
+      "kind": "ScalarField",
+      "name": "description",
+      "storageKey": null
+    },
+    (v6/*: any*/)
+  ],
+  "storageKey": null
+},
+v9 = {
   "alias": null,
   "args": null,
   "kind": "ScalarField",
@@ -74,7 +126,8 @@ return {
   "fragment": {
     "argumentDefinitions": [
       (v0/*: any*/),
-      (v1/*: any*/)
+      (v1/*: any*/),
+      (v2/*: any*/)
     ],
     "kind": "Fragment",
     "metadata": null,
@@ -82,7 +135,7 @@ return {
     "selections": [
       {
         "alias": null,
-        "args": (v2/*: any*/),
+        "args": (v3/*: any*/),
         "concreteType": "EventQuestionEdgeContainer",
         "kind": "LinkedField",
         "name": "enqueuedPushQuestion",
@@ -104,7 +157,7 @@ return {
                 "name": "node",
                 "plural": false,
                 "selections": [
-                  (v3/*: any*/),
+                  (v4/*: any*/),
                   {
                     "args": null,
                     "kind": "FragmentSpread",
@@ -116,15 +169,17 @@ return {
                     "name": "QuestionStatsFragment"
                   },
                   {
-                    "args": null,
+                    "args": (v5/*: any*/),
                     "kind": "FragmentSpread",
                     "name": "QuestionContentFragment"
                   },
-                  (v4/*: any*/)
+                  (v6/*: any*/),
+                  (v7/*: any*/),
+                  (v8/*: any*/)
                 ],
                 "storageKey": null
               },
-              (v5/*: any*/)
+              (v9/*: any*/)
             ],
             "storageKey": null
           }
@@ -139,14 +194,15 @@ return {
   "operation": {
     "argumentDefinitions": [
       (v1/*: any*/),
-      (v0/*: any*/)
+      (v0/*: any*/),
+      (v2/*: any*/)
     ],
     "kind": "Operation",
     "name": "useEnqueuedPushSubscription",
     "selections": [
       {
         "alias": null,
-        "args": (v2/*: any*/),
+        "args": (v3/*: any*/),
         "concreteType": "EventQuestionEdgeContainer",
         "kind": "LinkedField",
         "name": "enqueuedPushQuestion",
@@ -168,7 +224,7 @@ return {
                 "name": "node",
                 "plural": false,
                 "selections": [
-                  (v3/*: any*/),
+                  (v4/*: any*/),
                   {
                     "alias": null,
                     "args": null,
@@ -177,7 +233,7 @@ return {
                     "name": "createdBy",
                     "plural": false,
                     "selections": [
-                      (v3/*: any*/),
+                      (v4/*: any*/),
                       {
                         "alias": null,
                         "args": null,
@@ -223,11 +279,27 @@ return {
                     "name": "question",
                     "storageKey": null
                   },
-                  (v4/*: any*/)
+                  {
+                    "alias": null,
+                    "args": null,
+                    "kind": "ScalarField",
+                    "name": "lang",
+                    "storageKey": null
+                  },
+                  {
+                    "alias": null,
+                    "args": (v5/*: any*/),
+                    "kind": "ScalarField",
+                    "name": "questionTranslated",
+                    "storageKey": null
+                  },
+                  (v6/*: any*/),
+                  (v7/*: any*/),
+                  (v8/*: any*/)
                 ],
                 "storageKey": null
               },
-              (v5/*: any*/)
+              (v9/*: any*/)
             ],
             "storageKey": null
           },
@@ -253,16 +325,16 @@ return {
     ]
   },
   "params": {
-    "cacheID": "67c87713b931d5b1f7adb5afcf1b64b0",
+    "cacheID": "8d96c10187fc854b94f562e8d7e8d8f3",
     "id": null,
     "metadata": {},
     "name": "useEnqueuedPushSubscription",
     "operationKind": "subscription",
-    "text": "subscription useEnqueuedPushSubscription(\n  $eventId: ID!\n) {\n  enqueuedPushQuestion(eventId: $eventId) {\n    edge {\n      node {\n        id\n        ...QuestionAuthorFragment\n        ...QuestionStatsFragment\n        ...QuestionContentFragment\n        position\n      }\n      cursor\n    }\n  }\n}\n\nfragment QuestionAuthorFragment on EventQuestion {\n  createdBy {\n    id\n    firstName\n    lastName\n    avatar\n  }\n  createdAt\n}\n\nfragment QuestionContentFragment on EventQuestion {\n  question\n}\n\nfragment QuestionStatsFragment on EventQuestion {\n  id\n  likedByCount\n}\n"
+    "text": "subscription useEnqueuedPushSubscription(\n  $eventId: ID!\n  $lang: String!\n) {\n  enqueuedPushQuestion(eventId: $eventId) {\n    edge {\n      node {\n        id\n        ...QuestionAuthorFragment\n        ...QuestionStatsFragment\n        ...QuestionContentFragment_3iqx2P\n        position\n        onDeckPosition\n        topics {\n          topic\n          description\n          position\n        }\n      }\n      cursor\n    }\n  }\n}\n\nfragment QuestionAuthorFragment on EventQuestion {\n  createdBy {\n    id\n    firstName\n    lastName\n    avatar\n  }\n  createdAt\n}\n\nfragment QuestionContentFragment_3iqx2P on EventQuestion {\n  question\n  lang\n  questionTranslated(lang: $lang)\n}\n\nfragment QuestionStatsFragment on EventQuestion {\n  id\n  likedByCount\n}\n"
   }
 };
 })();
 
-(node as any).hash = "46ed48d79487121ab1e593a9d24cbd92";
+(node as any).hash = "94a7dd17391b54a907220e157fb9d632";
 
 export default node;

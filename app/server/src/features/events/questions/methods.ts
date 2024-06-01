@@ -1,8 +1,104 @@
 import { fromGlobalId } from 'graphql-relay';
-import { PrismaClient } from '@local/__generated__/prisma';
-import { errors } from '@local/features/utils';
+import { Prisma, PrismaClient } from '@local/__generated__/prisma';
+import { errors, getPreferredLang } from '@local/features/utils';
 import { ProtectedError } from '@local/lib/ProtectedError';
 import type { CreateQuestion, AlterLike } from '@local/graphql-types';
+import axios, { AxiosResponse } from 'axios';
+import { detectLanguage, translateText } from '@local/core/utils';
+
+async function createQuestionGuardCheck(userId: string, eventId: string, prisma: PrismaClient) {
+    // Verify that user is not muted from asking questions
+    const isMutedResult = await prisma.eventParticipant.findUnique({
+        where: { eventId_userId: { eventId, userId } },
+        select: { isMuted: true },
+    });
+
+    if (isMutedResult?.isMuted)
+        throw new ProtectedError({
+            userMessage: errors.muted,
+            internalMessage: `User with id: ${userId} attempted to ask a question while muted.`,
+        });
+}
+
+type TQuestionProcessingResult = {
+    originalLanguage: string;
+    questionTranslations: Prisma.JsonObject;
+    topics: string[];
+    substantive: boolean;
+    offensive: boolean;
+    relevant: boolean;
+};
+
+// Run through ben's algorithm, should still work if the api call fails
+async function processQuestion(input: CreateQuestion): Promise<TQuestionProcessingResult> {
+    const { question, eventId } = input;
+
+    type ExpectedResponse = {
+        question_en: string;
+        question_es: string;
+        original_lang: string;
+        substantive: boolean;
+        offensive: boolean;
+        relevant: boolean;
+        topics: {
+            [key: string]: boolean;
+        };
+    };
+    let response: AxiosResponse<ExpectedResponse> | null = null;
+    try {
+        response = await axios.post(
+            process.env.MODERATION_URL,
+            {
+                stage: 'moderation',
+                question: question,
+                eventId: eventId,
+            },
+            {
+                headers: { 'Content-Type': 'application/json' },
+            }
+        );
+        if (!response) throw new Error('No response from moderation service');
+    } catch (error) {
+        console.error(error);
+    }
+
+    // If the api call fails, we will translate and create the question without any moderation data
+    if (!response || !response.data) {
+        const originalLanguage = await detectLanguage(question);
+        const questionTranslations = { EN: '', ES: '' } as Prisma.JsonObject;
+        if (originalLanguage === 'es') {
+            questionTranslations.ES = question;
+            questionTranslations.EN = await translateText(question, 'en');
+        } else {
+            questionTranslations.EN = question;
+            questionTranslations.ES = await translateText(question, 'es');
+        }
+        console.log('GCloud Translation: ', questionTranslations);
+        return {
+            originalLanguage,
+            questionTranslations,
+            topics: [],
+            substantive: false,
+            offensive: false,
+            relevant: false,
+        };
+    }
+
+    const data = response.data;
+    // Get all the topis that are related to the question
+    const topics = Object.keys(data.topics).filter((key) => data.topics[key]);
+
+    const questionTranslations = { EN: data.question_en, ES: data.question_es } as Prisma.JsonObject;
+
+    return {
+        originalLanguage: data.original_lang,
+        questionTranslations,
+        topics,
+        substantive: data.substantive,
+        offensive: data.offensive,
+        relevant: data.relevant,
+    };
+}
 
 /**
  * submit a question, in the future this may plug into an event broker like kafka or redis
@@ -11,18 +107,22 @@ export async function createQuestion(userId: string, prisma: PrismaClient, input
     const { question, refQuestion: globalRefId, isFollowUp, isQuote, eventId } = input;
     const refQuestionId = globalRefId ? fromGlobalId(globalRefId).id : null;
 
-    // Verify that user is not muted from asking questions
-    const isMutedResult = await prisma.eventParticipant.findUnique({
-        where: { eventId_userId: { eventId, userId } },
-        select: { isMuted: true },
-    });
-
-    if (isMutedResult?.isMuted) throw new ProtectedError({ userMessage: errors.muted, internalMessage: `User with id: ${userId} attempted to ask a question while muted.` });
+    await createQuestionGuardCheck(userId, eventId, prisma);
 
     // it's okay to have both false, but both cannot be true
     if (isQuote === isFollowUp && isQuote === true) throw new ProtectedError({ userMessage: errors.invalidArgs });
 
-    return prisma.eventQuestion.create({
+    const { originalLanguage, questionTranslations, topics, substantive, offensive, relevant } = await processQuestion(
+        input
+    );
+
+    // Get the topic ids (and ensure they are valid topics in the event)
+    const topicIds = await prisma.eventTopic.findMany({
+        where: { eventId, topic: { in: topics } },
+        select: { id: true },
+    });
+
+    const newQuestion = await prisma.eventQuestion.create({
         data: {
             eventId,
             question,
@@ -32,14 +132,25 @@ export async function createQuestion(userId: string, prisma: PrismaClient, input
             createdById: userId,
             isVisible: true,
             isAsked: false,
-            lang: 'EN', // TODO:
+            lang: originalLanguage.toUpperCase() || 'EN',
+            topics: {
+                createMany: { data: topicIds.map(({ id }) => ({ topicId: id })) },
+            },
+            substantive: substantive || false,
+            offensive: offensive || false,
+            relevant: relevant || false,
+            translations: {
+                create: {
+                    questionTranslations,
+                },
+            },
         },
         include: {
             refQuestion: true,
         },
     });
+    return { question: newQuestion, topics };
 }
-
 /**
  *  Remove a question from an event
  */
@@ -166,4 +277,54 @@ export async function isEnqueued(questionId: string, prisma: PrismaClient) {
             internalMessage: `Could not find a question with id ${questionId}.`,
         });
     return parseInt(queryResult.position) !== -1;
+}
+
+export async function findTopicsByQuestionId(questionId: string, prisma: PrismaClient) {
+    const queryResult = await prisma.eventQuestion.findUnique({
+        where: { id: questionId },
+        select: {
+            topics: {
+                select: {
+                    topic: {
+                        select: { topic: true, description: true, id: true, eventId: true },
+                    },
+                    position: true,
+                },
+            },
+        },
+    });
+    if (!queryResult) return [];
+    const topics = queryResult.topics.map(({ topic, position }) => {
+        return { id: topic.id, eventId: topic.eventId, topic: topic.topic, description: topic.description, position };
+    });
+    return topics || [];
+}
+
+export async function getQuestionById(questionId: string, prisma: PrismaClient) {
+    const result = await prisma.eventQuestion.findUnique({ where: { id: questionId }, select: { question: true } });
+    return result?.question ?? 'No question found';
+}
+
+export async function getTranslatedQuestion(
+    viewerId: string | null,
+    questionId: string,
+    prisma: PrismaClient,
+    lang?: string
+): Promise<{ question: string; originalLang: string }> {
+    const preferredLang = lang ?? (await getPreferredLang(viewerId, prisma));
+    const result = await prisma.eventQuestion.findUnique({
+        where: { id: questionId },
+        include: { translations: true },
+    });
+    if (!result) throw new ProtectedError({ userMessage: 'Question not found' });
+
+    let translatedQuestion = { question: result.question, originalLang: result.lang };
+    const translationsObject = result.translations?.questionTranslations as Prisma.JsonObject | undefined;
+    if (!translationsObject) return translatedQuestion;
+
+    const translation = translationsObject[preferredLang.toUpperCase()] as string | undefined;
+    if (!translation) return translatedQuestion;
+
+    translatedQuestion.question = translation;
+    return translatedQuestion;
 }

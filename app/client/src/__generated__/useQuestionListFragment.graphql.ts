@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<38734a99d85e12719f9c43c8013aff2b>>
+ * @generated SignedSource<<a76c12210a3b7e557ab63870815e6711>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -22,7 +22,9 @@ export type useQuestionListFragment$data = {
           readonly firstName: string | null;
         } | null;
         readonly id: string;
-        readonly question: string | null;
+        readonly onDeckPosition: string;
+        readonly position: string;
+        readonly question: string;
         readonly refQuestion: {
           readonly " $fragmentSpreads": FragmentRefs<"QuestionQuoteFragment">;
         } | null;
@@ -47,7 +49,14 @@ v1 = {
   "kind": "ScalarField",
   "name": "id",
   "storageKey": null
-};
+},
+v2 = [
+  {
+    "kind": "Variable",
+    "name": "lang",
+    "variableName": "userLang"
+  }
+];
 return {
   "argumentDefinitions": [
     {
@@ -59,6 +68,11 @@ return {
       "defaultValue": 50,
       "kind": "LocalArgument",
       "name": "first"
+    },
+    {
+      "defaultValue": null,
+      "kind": "LocalArgument",
+      "name": "userLang"
     }
   ],
   "kind": "Fragment",
@@ -139,6 +153,20 @@ return {
                 {
                   "alias": null,
                   "args": null,
+                  "kind": "ScalarField",
+                  "name": "position",
+                  "storageKey": null
+                },
+                {
+                  "alias": null,
+                  "args": null,
+                  "kind": "ScalarField",
+                  "name": "onDeckPosition",
+                  "storageKey": null
+                },
+                {
+                  "alias": null,
+                  "args": null,
                   "concreteType": "User",
                   "kind": "LinkedField",
                   "name": "createdBy",
@@ -163,7 +191,7 @@ return {
                   "plural": false,
                   "selections": [
                     {
-                      "args": null,
+                      "args": (v2/*: any*/),
                       "kind": "FragmentSpread",
                       "name": "QuestionQuoteFragment"
                     }
@@ -171,7 +199,7 @@ return {
                   "storageKey": null
                 },
                 {
-                  "args": null,
+                  "args": (v2/*: any*/),
                   "kind": "FragmentSpread",
                   "name": "QuestionActionsFragment"
                 },
@@ -181,7 +209,7 @@ return {
                   "name": "QuestionAuthorFragment"
                 },
                 {
-                  "args": null,
+                  "args": (v2/*: any*/),
                   "kind": "FragmentSpread",
                   "name": "QuestionContentFragment"
                 },
@@ -249,6 +277,6 @@ return {
 };
 })();
 
-(node as any).hash = "04d5e0c47685ba15a2a54c9e5aafe145";
+(node as any).hash = "5d122b700bba61047366c4322cc966f7";
 
 export default node;

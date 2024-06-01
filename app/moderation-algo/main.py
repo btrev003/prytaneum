@@ -227,7 +227,10 @@ def HandleUserInput():
                 topics, lockedTopics, error = RemoveMany(topics, lockedTopics, selectedTopics)
 
             elif(action == 'regenerate'):
+                LogEventConsole('Entered regeneration action. Fetching reading materials from redis storage...', 'DEBUG') # DELETE THIS
                 reading_materials = r.get('moderation_reading_materials_{}'.format(eventId))
+                LogEventConsole('Done. Reading materials data type is:{}'.format(type(reading_materials)), 'DEBUG') # DELETE THIS
+                LogEventConsole('The reading materials start with:{}'.format(reading_materials[:50]), 'DEBUG') # DELETE THIS
                 if(not reading_materials):
                     LogEventConsole('Unable to regenerate due to reading materials not existing in stored data.', 'ERROR')
                     return jsonify({'ERROR': 'Unable to regenerate due to reading materials not existing in stored data.'}), 400 # HTTP bad request
