@@ -127,6 +127,7 @@ def HandleUserInput():
             # Save them for later use, expiring in a week
             r.set('moderation_issue_{}'.format(eventId), issue, ex=secInAWeek)
             r.set('moderation_topics_{}'.format(eventId), json.dumps(topics), ex=secInAWeek)
+            r.set('moderation_lockedTopics_{}'.format(eventId), json.dumps([]), ex=secInAWeek)
             r.set('moderation_reading_materials_{}'.format(eventId), reading_materials, ex=secInAWeek)
 
             # Issue a warning if no topics were returned
@@ -145,7 +146,7 @@ def HandleUserInput():
         elif(stage == 'interactive'):
             # At this point, the extracted topics and list of locked topics should already be available in Redis
             # If lockedTopics does not exist, create a new empty list for it
-            lockedTopics = r.get('moderation_lockedTopics_{}'.format(eventId))
+            lockedTopics = r.get('moderation_lockedTopics_{}'.format(eventId), ex=secInAWeek)
             if(lockedTopics):
                 lockedTopics = json.loads(lockedTopics)
             else:
