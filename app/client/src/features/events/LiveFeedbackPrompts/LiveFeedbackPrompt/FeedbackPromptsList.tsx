@@ -6,7 +6,6 @@ import {
     Typography,
     Grid,
     IconButton,
-    DialogContent,
     Tabs,
     Tab,
     CardActions,
@@ -15,16 +14,12 @@ import {
 import DescriptionIcon from '@mui/icons-material/Description';
 import { OpenInNew as OpenInNewIcon } from '@mui/icons-material';
 import { useTheme, alpha } from '@mui/material/styles';
-import useMediaQuery from '@mui/material/useMediaQuery';
-
-import { PreloadedLiveFeedbackPromptResponseList } from '../LiveFeedbackPromptResponses/LiveFeedbackPromptResponseList';
-import { ShareFeedbackPromptResults } from '../LiveFeedbackPromptResponses';
 import { useEvent } from '@local/features/events/useEvent';
-import { StyledDialogTitle, Loader, StyledDialog, ConditionalRender } from '@local/components';
 import { ShareFeedbackPromptDraft } from './ShareFeedbackPromptDraft';
 import { SubmitLiveFeedbackPrompt } from './SubmitLiveFeedbackPrompt';
 import { useLiveFeedbackPrompts } from './useLiveFeedbackPrompts';
 import { useLiveFeedbackPromptsFragment$key } from '@local/__generated__/useLiveFeedbackPromptsFragment.graphql';
+import FeedbackResponsesDialog from './FeedbackResponsesDialog';
 
 export type Prompt = {
     readonly id: string;
@@ -35,6 +30,7 @@ export type Prompt = {
     readonly multipleChoiceOptions: ReadonlyArray<string> | null;
     readonly isDraft: boolean | null;
     readonly createdAt: Date | null;
+    readonly viewpoints: ReadonlyArray<string> | null;
 };
 
 interface PromptItemProps {
@@ -197,13 +193,12 @@ interface FeedbackPromptsListProps {
  */
 export function FeedbackPromptsList({ fragmentRef, isShareResultsOpen }: FeedbackPromptsListProps) {
     const [open, setOpen] = React.useState(false);
-    const theme = useTheme();
-    const fullscreen = useMediaQuery(theme.breakpoints.down('md'));
     const { prompts, connections } = useLiveFeedbackPrompts({
         fragmentRef,
         isModalOpen: open,
         isShareResultsOpen,
     });
+    const [selectedPrompt, setSelectedPrompt] = React.useState<Prompt | null>(null);
     const selectedPromptRef = React.useRef<Prompt | null>(null);
     const { pauseParentRefreshing, resumeParentRefreshing, eventId } = useEvent();
 
@@ -218,75 +213,24 @@ export function FeedbackPromptsList({ fragmentRef, isShareResultsOpen }: Feedbac
 
     const handlePromptClick = (prompt: Prompt) => {
         // Update the selected prompt ref
+        setSelectedPrompt(prompt);
         selectedPromptRef.current = prompt;
         // Open the modal
         handleOpen();
-    };
-
-    const PromptResponseList = () => {
-        if (selectedPromptRef.current)
-            return (
-                <ConditionalRender client>
-                    <React.Suspense fallback={<Loader />}>
-                        <PreloadedLiveFeedbackPromptResponseList prompt={selectedPromptRef.current} />
-                    </React.Suspense>
-                </ConditionalRender>
-            );
-        return <React.Fragment />;
-    };
-
-    const PromptText = React.useCallback(() => {
-        if (selectedPromptRef.current)
-            return (
-                <Grid container padding='1rem'>
-                    <Grid item xs>
-                        <Typography variant='h5' style={{ overflowWrap: 'break-word' }}>
-                            Prompt: {selectedPromptRef.current.prompt}
-                        </Typography>
-                    </Grid>
-                </Grid>
-            );
-        return <React.Fragment />;
-    }, []);
-
-    const ShareFeedbackResultsButton = () => {
-        if (
-            selectedPromptRef.current &&
-            (selectedPromptRef.current.isVote || selectedPromptRef.current.isMultipleChoice)
-        )
-            return (
-                <Grid item paddingBottom='1rem'>
-                    <ShareFeedbackPromptResults prompt={selectedPromptRef.current} />
-                </Grid>
-            );
-        return <React.Fragment />;
     };
 
     return (
         <React.Fragment>
             <SubmitLiveFeedbackPrompt eventId={eventId} connections={connections} />
             <Typography variant='h6'>Select view on a prompt to see its responses</Typography>
-            {!prompts ? <Loader /> : <PromptList prompts={prompts} handleClick={handlePromptClick} />}
-            <StyledDialog
-                fullScreen={fullscreen}
-                maxWidth='lg'
-                fullWidth={true}
-                scroll='paper'
+            <PromptList prompts={prompts} handleClick={handlePromptClick} />
+            <FeedbackResponsesDialog
                 open={open}
-                onClose={handleClose}
-                aria-labelledby='feedback-responses-dialog'
-            >
-                <StyledDialogTitle id='feedback-responses-dialog-title' onClose={handleClose}>
-                    Feedback Responses
-                </StyledDialogTitle>
-                <DialogContent dividers>
-                    <Grid container direction='column' alignItems='center' alignContent='center'>
-                        <PromptText />
-                        <ShareFeedbackResultsButton />
-                        <PromptResponseList />
-                    </Grid>
-                </DialogContent>
-            </StyledDialog>
+                handleClose={handleClose}
+                promptRef={selectedPromptRef}
+                selectedPrompt={selectedPrompt}
+                setSelectedPrompt={setSelectedPrompt}
+            />
         </React.Fragment>
     );
 }

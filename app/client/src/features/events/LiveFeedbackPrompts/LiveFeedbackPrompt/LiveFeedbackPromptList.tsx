@@ -263,10 +263,7 @@ function LiveFeedbackPromptList({ queryRef, responsesModalStatusRef }: LiveFeedb
     }, []);
 
     const ShareFeedbackResultsButton = () => {
-        if (
-            selectedPromptRef.current &&
-            (selectedPromptRef.current.isVote || selectedPromptRef.current.isMultipleChoice)
-        )
+        if (selectedPromptRef.current)
             return (
                 <Grid item paddingBottom='1rem'>
                     <ShareFeedbackPromptResults prompt={selectedPromptRef.current} />
