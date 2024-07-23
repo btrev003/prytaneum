@@ -6,7 +6,7 @@ import Button from '@mui/material/Button';
 import { ResponsiveDialog, useResponsiveDialog } from '@local/components';
 import { Grid, Typography, DialogContent } from '@mui/material';
 import { useEvent } from '../../useEvent';
-import { Prompt } from './FeedbackPromptsList';
+import { Prompt } from './LiveFeedbackPromptList';
 
 export const GENERATE_VIEWPOINTS_MUTATION = graphql`
     mutation GenerateViewpointsMutation($eventId: ID!, $promptId: ID!) {

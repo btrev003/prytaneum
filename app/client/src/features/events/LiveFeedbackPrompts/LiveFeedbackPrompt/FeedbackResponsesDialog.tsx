@@ -6,7 +6,7 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import { PreloadedLiveFeedbackPromptResponseList } from '../LiveFeedbackPromptResponses/LiveFeedbackPromptResponseList';
 import { ShareFeedbackPromptResults } from '../LiveFeedbackPromptResponses';
 import { StyledDialogTitle, StyledDialog } from '@local/components';
-import { Prompt } from './FeedbackPromptsList';
+import { Prompt } from './LiveFeedbackPromptList';
 import ViewpointsList from './ViewpointsList';
 import GenerateViewpoints from './GenerateViewpoints';
 

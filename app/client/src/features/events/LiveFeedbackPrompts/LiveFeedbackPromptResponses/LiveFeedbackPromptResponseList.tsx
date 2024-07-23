@@ -5,7 +5,7 @@ import { List, ListItem, Card, CardContent, Typography, Grid, Button, Divider } 
 import { ConditionalRender, Loader } from '@local/components';
 import { LiveFeedbackPromptResponseListQuery } from '@local/__generated__/LiveFeedbackPromptResponseListQuery.graphql';
 import { useEnvironment } from '@local/core';
-import { Prompt } from '../LiveFeedbackPrompt/FeedbackPromptsList';
+import { Prompt } from '../LiveFeedbackPrompt/LiveFeedbackPromptList';
 import { PromptResponseAuthorCardHeader } from './PromptResponseAuthorCardHeader';
 import { VoteResponseChart } from '../LiveFeedbackPromptResponse/VoteResponseChart';
 import { MultipleChoiceResponseChart } from '../LiveFeedbackPromptResponse';
