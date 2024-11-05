@@ -24,6 +24,7 @@ import { usePingEvent } from './Participants/usePingEvent';
 import { useHashedColor } from '@local/core/getHashedColor';
 import { EventTopicContext } from './ModeratorView/EventTopicContext';
 import { useParticipantList } from './Participants/useParticipantList';
+import GoogleMeet from '../google-meet/GoogleMeet';
 
 export const EVENT_LIVE_QUERY = graphql`
     query EventLiveQuery($eventId: ID!, $lang: String!) {
@@ -31,6 +32,7 @@ export const EVENT_LIVE_QUERY = graphql`
             id
             ... on Event {
                 isViewerModerator
+                ...useGoogleMeetFragment
                 ...EventSidebarFragment
                 ...useBroadcastMessageListFragment
                 ...EventVideoFragment
@@ -221,9 +223,18 @@ function EventLive({ node, validateInvite, tokenProvided }: EventLiveProps) {
                                     top: 0,
                                     zIndex: theme.zIndex.appBar,
                                 },
+                                display: eventData.eventType === 'GOOGLE_MEET' ? 'flex' : 'inline',
+                                flex: eventData.eventType === 'GOOGLE_MEET' ? 1 : 'none',
+                                minHeight: eventData.eventType === 'GOOGLE_MEET' ? '600px' : '0px',
                             }}
                         >
-                            <EventVideo fragmentRef={node} />
+                            {eventData.eventType === 'GOOGLE_MEET' ? (
+                                <div id='google-meet' className='meet-frame'>
+                                    <GoogleMeet fragmentRef={node} />
+                                </div>
+                            ) : (
+                                <EventVideo fragmentRef={node} />
+                            )}
                         </Grid>
                         <Grid container item sx={{ display: 'flex', justifyContent: 'flex-end', paddingRight: '1rem' }}>
                             <Tooltip title='Total Active Participants' placement='top'>
@@ -235,6 +246,7 @@ function EventLive({ node, validateInvite, tokenProvided }: EventLiveProps) {
                         </Grid>
                         <EventDetailsCard eventData={eventData} />
                         <SpeakerList fragmentRef={node} />
+                        <div style={{ height: '1rem' }} />
                     </Grid>
                     <Grid container item xs={12} md={4} direction='column'>
                         <div
