@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { Button, TextField, Radio, RadioGroup, Typography, FormControlLabel, IconButton } from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import ScheduleSendIcon from '@mui/icons-material/ScheduleSend';
+import SendIcon from '@mui/icons-material/Send';
 
 import { Form } from '@local/components/Form';
 import { FormTitle } from '@local/components/FormTitle';
@@ -14,6 +16,7 @@ import {
     CHOICES_MAX_AMOUNT,
     STARTING_CHOICE_AMOUNT,
 } from '@local/utils/rules';
+import { FeedbackDashboardTab } from './LiveFeedbackPromptList';
 
 export type TLiveFeedbackPromptFormState = {
     prompt: string;
@@ -24,16 +27,17 @@ export type TLiveFeedbackPromptFormState = {
 export interface LiveFeedbackPromptFormProps {
     onSubmit?: (state: TLiveFeedbackPromptFormState, isDraft: boolean) => void;
     onCancel?: () => void;
+    selectedTab?: FeedbackDashboardTab;
 }
 
-export function LiveFeedbackPromptForm({ onSubmit, onCancel }: LiveFeedbackPromptFormProps) {
+export function LiveFeedbackPromptForm({ onSubmit, onCancel, selectedTab }: LiveFeedbackPromptFormProps) {
     const [choices, setChoices] = React.useState<string[]>(
         new Array(STARTING_CHOICE_AMOUNT).fill('', 0, STARTING_CHOICE_AMOUNT)
     );
     // form related hooks
     const [form, errors, handleSubmit, handleChange] = useForm({
         prompt: '',
-        feedbackType: 'open-ended',
+        feedbackType: selectedTab ?? 'open-ended',
         choices: choices,
     });
 
@@ -188,7 +192,7 @@ export function LiveFeedbackPromptForm({ onSubmit, onCancel }: LiveFeedbackPromp
             </FormContent>
             <FormActions disableGrow gridProps={{ justifyContent: 'flex-end' }}>
                 {onCancel && (
-                    <Button color='primary' onClick={onCancel}>
+                    <Button variant='outlined' color='primary' onClick={onCancel}>
                         Cancel
                     </Button>
                 )}
@@ -197,11 +201,18 @@ export function LiveFeedbackPromptForm({ onSubmit, onCancel }: LiveFeedbackPromp
                     onClick={onSaveDraft}
                     variant='contained'
                     color='primary'
+                    startIcon={<ScheduleSendIcon />}
                 >
                     Save as Draft
                 </Button>
-                <Button disabled={!isPromptValidForSubmission()} type='submit' variant='contained' color='primary'>
-                    Create
+                <Button
+                    disabled={!isPromptValidForSubmission()}
+                    type='submit'
+                    variant='contained'
+                    color='primary'
+                    startIcon={<SendIcon />}
+                >
+                    Prompt
                 </Button>
             </FormActions>
         </Form>

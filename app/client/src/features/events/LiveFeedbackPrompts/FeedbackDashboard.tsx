@@ -1,28 +1,32 @@
 import * as React from 'react';
-import { Button, Grid, DialogContent } from '@mui/material';
+import { Button, DialogContent } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 
-import { StyledDialogTitle, StyledDialog } from '@local/components';
+import { StyledDialogTitle, StyledDialog, Loader } from '@local/components';
 import { useLiveFeedbackPromptsFragment$key } from '@local/__generated__/useLiveFeedbackPromptsFragment.graphql';
 import { LiveFeedbackPromptsList } from './LiveFeedbackPrompt/LiveFeedbackPromptList';
 
-interface ShareFeedbackResultsProps {
+interface FeedbackDashboardProps {
     fragmentRef: useLiveFeedbackPromptsFragment$key;
 }
 
 /**
- * A modal that opens when moderators click on the "Share Feedback Results" button
+ * A modal that opens when moderators click on the "Feedback Dashboard" button
  * A list of previous feedback prompts are displayed, and moderators can click on each one to see the responses
  * A button can be pressed to share the results card for one of the prompts with the audience
  */
-export function ShareFeedbackResults({ fragmentRef }: ShareFeedbackResultsProps) {
+export function FeedbackDashboard({ fragmentRef }: FeedbackDashboardProps) {
     const theme = useTheme();
     const fullscreen = useMediaQuery(theme.breakpoints.down('md'));
     const [open, setOpen] = React.useState(false);
-    const handleOpen = () => setOpen(true);
-    const handleClose = () => setOpen(false);
+    const handleOpen = () => {
+        setOpen(true);
+    };
+    const handleClose = () => {
+        setOpen(false);
+    };
 
     return (
         <React.Fragment>
@@ -37,14 +41,20 @@ export function ShareFeedbackResults({ fragmentRef }: ShareFeedbackResultsProps)
                 open={open}
                 onClose={handleClose}
                 aria-labelledby='share-feedback-results-dialog'
+                PaperProps={{
+                    sx: {
+                        maxHeight: fullscreen ? '100%' : '80%',
+                        minHeight: fullscreen ? '100%' : '80%',
+                    },
+                }}
             >
                 <StyledDialogTitle id='share-feedback-results-dialog-title' onClose={handleClose}>
                     Feedback Dashboard
                 </StyledDialogTitle>
                 <DialogContent dividers>
-                    <Grid container direction='column' alignItems='center'>
-                        <LiveFeedbackPromptsList fragmentRef={fragmentRef} isShareResultsOpen={open} />
-                    </Grid>
+                    <React.Suspense fallback={<Loader />}>
+                        <LiveFeedbackPromptsList fragmentRef={fragmentRef} />
+                    </React.Suspense>
                 </DialogContent>
             </StyledDialog>
         </React.Fragment>

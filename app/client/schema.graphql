@@ -196,6 +196,7 @@ type Event implements Node {
   """The planned end date time string"""
   endDateTime: Date
   eventType: String
+  googleMeetSpace: String
   googleMeetUrl: String
   id: ID!
 
@@ -610,6 +611,12 @@ type FeedbackOperation {
   operationType: Operation!
 }
 
+input GenerateViewpointsInput {
+  eventId: ID!
+  isForcedRegenerate: Boolean
+  promptId: ID!
+}
+
 type GeneratedTopic {
   description: String!
   locked: Boolean
@@ -700,7 +707,7 @@ type Mutation {
   Material limited to ~120k characters
   """
   generateEventTopics(eventId: String!, material: String!): TopicGenerationMutationResponse
-  generateViewpoints(eventId: ID!, promptId: ID!): EventFeedbackPromptMutationResponse!
+  generateViewpoints(input: GenerateViewpointsInput!): EventFeedbackPromptMutationResponse!
   hideQuestion(input: HideQuestion!): EventQuestion
   lockTopic(eventId: String!, topic: String!): TopicLockToggleMutationResponse
   lockTopics(eventId: String!, topics: [String!]!): MutationResponse
@@ -742,6 +749,7 @@ type Mutation {
   returns false if an account with the provided email cannot be found
   """
   resetPasswordRequest(input: ResetPasswordRequestForm!): ResetPasswordRequestMutationResponse!
+  reshareFeedbackPrompt(promptId: ID!): EventFeedbackPromptMutationResponse!
   shareFeedbackPromptDraft(promptId: ID!): EventFeedbackPromptMutationResponse!
   shareFeedbackPromptResults(eventId: ID!, promptId: ID!): EventFeedbackPromptMutationResponse!
 
@@ -955,7 +963,7 @@ type Subscription {
   eventUpdates(userId: ID!): Event!
   feedbackCRUD(eventId: ID!): FeedbackOperation!
   feedbackPromptResultsShared(eventId: ID!): EventLiveFeedbackPrompt!
-  feedbackPrompted(eventId: ID!): EventLiveFeedbackPrompt!
+  feedbackPrompted(eventId: ID!): EventLiveFeedbackPromptEdge!
 
   """subscription for whenever a new org is added"""
   orgUpdated: OrganizationSubscription!

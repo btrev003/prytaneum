@@ -10,16 +10,22 @@ import {
     Tab,
     CardActions,
     CardHeader,
+    Stack,
+    Tooltip,
+    Button,
 } from '@mui/material';
 import DescriptionIcon from '@mui/icons-material/Description';
 import { OpenInNew as OpenInNewIcon } from '@mui/icons-material';
 import { useTheme, alpha } from '@mui/material/styles';
-import { useEvent } from '@local/features/events/useEvent';
 import { ShareFeedbackPromptDraft } from './ShareFeedbackPromptDraft';
 import { SubmitLiveFeedbackPrompt } from './SubmitLiveFeedbackPrompt';
 import { useLiveFeedbackPrompts } from './useLiveFeedbackPrompts';
 import { useLiveFeedbackPromptsFragment$key } from '@local/__generated__/useLiveFeedbackPromptsFragment.graphql';
 import FeedbackResponsesDialog from './FeedbackResponsesDialog';
+import { useLiveFeedbackPrompted } from '../useLiveFeedbackPrompted';
+import { ShareFeedbackPrompt } from './ShareFeedbackPrompt';
+
+export type FeedbackDashboardTab = 'open-ended' | 'vote' | 'multiple-choice';
 
 export type Prompt = {
     readonly id: string;
@@ -40,6 +46,16 @@ interface PromptItemProps {
 }
 
 function PromptItem({ prompt, handleClick }: PromptItemProps) {
+    const ViewResponses = () => {
+        return (
+            <Tooltip title='View Responses' placement='top'>
+                <Button variant='contained' startIcon={<OpenInNewIcon />} onClick={() => handleClick(prompt)}>
+                    View Responses
+                </Button>
+            </Tooltip>
+        );
+    };
+
     return (
         <Card sx={{ margin: '0.25rem' }}>
             {prompt.isDraft ? (
@@ -65,10 +81,10 @@ function PromptItem({ prompt, handleClick }: PromptItemProps) {
                 {prompt.isDraft ? (
                     <ShareFeedbackPromptDraft prompt={prompt} />
                 ) : (
-                    <IconButton onClick={() => handleClick(prompt)}>
-                        <OpenInNewIcon />
-                        <Typography variant='subtitle1'>View</Typography>
-                    </IconButton>
+                    <Stack direction='row' spacing={1}>
+                        <ShareFeedbackPrompt prompt={prompt} />
+                        <ViewResponses />
+                    </Stack>
                 )}
             </CardActions>
         </Card>
@@ -78,21 +94,22 @@ function PromptItem({ prompt, handleClick }: PromptItemProps) {
 interface PromptListProps {
     prompts: readonly Prompt[];
     handleClick: (prompt: Prompt) => void;
+    selectedTab: FeedbackDashboardTab;
+    setSelectedTab: React.Dispatch<React.SetStateAction<FeedbackDashboardTab>>;
 }
 
 /**
  * This component is responsible for rendering the live feedback prompts using the provided fragment Ref
  */
-function PromptList({ prompts: readonlyPrompts, handleClick }: PromptListProps) {
+function PromptList({ prompts: readonlyPrompts, handleClick, selectedTab, setSelectedTab }: PromptListProps) {
     const theme = useTheme();
     // Reverse the prompts so that the most recent are at the top
     const prompts = React.useMemo(() => [...readonlyPrompts].reverse(), [readonlyPrompts]);
-    const [value, setValue] = React.useState<'open-ended' | 'vote' | 'multiple-choice'>('open-ended');
     const MAX_LIST_LENGTH = 100;
 
     const handleChange = (e: React.SyntheticEvent, newValue: 'open-ended' | 'vote') => {
         e.preventDefault();
-        setValue(newValue);
+        setSelectedTab(newValue);
     };
 
     const openEndedPrompts = React.useMemo(() => prompts.filter((prompt) => prompt.isOpenEnded), [prompts]);
@@ -111,7 +128,7 @@ function PromptList({ prompts: readonlyPrompts, handleClick }: PromptListProps) 
                     },
                     '& .Mui-selected': { backgroundColor: 'custom.creamCan' },
                 }}
-                value={value}
+                value={selectedTab}
                 onChange={handleChange}
                 centered
                 aria-label='secondary tabs example'
@@ -120,65 +137,76 @@ function PromptList({ prompts: readonlyPrompts, handleClick }: PromptListProps) 
                 <Tab label='Vote' value='vote' />
                 <Tab label='Multiple Choice' value='multiple-choice' />
             </Tabs>
-            {value === 'open-ended' && (
-                <React.Fragment>
+            {selectedTab === 'open-ended' && (
+                <List
+                    id='live-feedback-open-ended-prompt-list'
+                    sx={{
+                        border: 5,
+                        borderImage: `linear-gradient(${theme.palette.custom.creamCan},white) 10`,
+                        width: '100%',
+                        height: '100%',
+                    }}
+                >
                     {openEndedPrompts.length > 0 ? (
-                        <List
-                            id='live-feedback-open-ended-prompt-list'
-                            sx={{
-                                border: 5,
-                                borderImage: `linear-gradient(${theme.palette.custom.creamCan},white) 10`,
-                                width: '100%',
-                            }}
-                        >
-                            {openEndedPrompts.slice(0, MAX_LIST_LENGTH).map((prompt) => (
-                                <PromptItem key={prompt.id} prompt={prompt} handleClick={handleClick} />
-                            ))}
-                        </List>
+                        openEndedPrompts
+                            .slice(0, MAX_LIST_LENGTH)
+                            .map((prompt) => <PromptItem key={prompt.id} prompt={prompt} handleClick={handleClick} />)
                     ) : (
-                        <Typography>No Open Ended Prompts To Display Yet</Typography>
+                        <Grid height='25vh'>
+                            <Typography textAlign='center' fontWeight='bold'>
+                                No Open Ended Prompts To Display Yet.
+                            </Typography>
+                        </Grid>
                     )}
+                </List>
+            )}
+            {selectedTab === 'vote' && (
+                <React.Fragment>
+                    <List
+                        id='live-feedback-vote-prompt-list'
+                        sx={{
+                            border: 5,
+                            borderImage: `linear-gradient(${theme.palette.custom.creamCan},white) 10`,
+                            width: '100%',
+                            height: '100%',
+                        }}
+                    >
+                        {votePrompts.length > 0 ? (
+                            votePrompts.map((prompt) => (
+                                <PromptItem key={prompt.id} prompt={prompt} handleClick={handleClick} />
+                            ))
+                        ) : (
+                            <Grid height='25vh'>
+                                <Typography textAlign='center' fontWeight='bold'>
+                                    No Vote Prompts To Display Yet.
+                                </Typography>
+                            </Grid>
+                        )}
+                    </List>
                 </React.Fragment>
             )}
-            {value === 'vote' && (
-                <React.Fragment>
-                    {votePrompts.length > 0 ? (
-                        <List
-                            id='live-feedback-vote-prompt-list'
-                            sx={{
-                                border: 5,
-                                borderImage: `linear-gradient(${theme.palette.custom.creamCan},white) 10`,
-                                width: '100%',
-                            }}
-                        >
-                            {votePrompts.map((prompt) => (
-                                <PromptItem key={prompt.id} prompt={prompt} handleClick={handleClick} />
-                            ))}
-                        </List>
-                    ) : (
-                        <Typography>No Vote Prompts To Display Yet</Typography>
-                    )}
-                </React.Fragment>
-            )}
-            {value === 'multiple-choice' && (
-                <React.Fragment>
+            {selectedTab === 'multiple-choice' && (
+                <List
+                    id='live-feedback-multiple-choice-prompt-list'
+                    sx={{
+                        border: 5,
+                        borderImage: `linear-gradient(${theme.palette.custom.creamCan},white) 10`,
+                        width: '100%',
+                        height: '100%',
+                    }}
+                >
                     {multipleChoicePrompts.length > 0 ? (
-                        <List
-                            id='live-feedback-multiple-choice-prompt-list'
-                            sx={{
-                                border: 5,
-                                borderImage: `linear-gradient(${theme.palette.custom.creamCan},white) 10`,
-                                width: '100%',
-                            }}
-                        >
-                            {multipleChoicePrompts.map((prompt) => (
-                                <PromptItem key={prompt.id} prompt={prompt} handleClick={handleClick} />
-                            ))}
-                        </List>
+                        multipleChoicePrompts.map((prompt) => (
+                            <PromptItem key={prompt.id} prompt={prompt} handleClick={handleClick} />
+                        ))
                     ) : (
-                        <Typography>No Multiple Choice Prompts To Display Yet</Typography>
+                        <Grid height='25vh'>
+                            <Typography textAlign='center' fontWeight='bold'>
+                                No Multiple Choice Prompts To Display Yet.
+                            </Typography>
+                        </Grid>
                     )}
-                </React.Fragment>
+                </List>
             )}
         </React.Fragment>
     );
@@ -186,31 +214,23 @@ function PromptList({ prompts: readonlyPrompts, handleClick }: PromptListProps) 
 
 interface LiveFeedbackPromptsListProps {
     fragmentRef: useLiveFeedbackPromptsFragment$key;
-    isShareResultsOpen: boolean;
 }
 
 /**
  * This component is responsible for loading the query and passing the fragment ref to the PromptList component
  */
-export function LiveFeedbackPromptsList({ fragmentRef, isShareResultsOpen }: LiveFeedbackPromptsListProps) {
+export function LiveFeedbackPromptsList({ fragmentRef }: LiveFeedbackPromptsListProps) {
     const [open, setOpen] = React.useState(false);
-    const { prompts, connections } = useLiveFeedbackPrompts({
+    const { prompts, connections, refresh } = useLiveFeedbackPrompts({
         fragmentRef,
-        isModalOpen: open,
-        isShareResultsOpen,
     });
+    useLiveFeedbackPrompted({ connections });
+    const [selectedTab, setSelectedTab] = React.useState<FeedbackDashboardTab>('open-ended');
     const [selectedPrompt, setSelectedPrompt] = React.useState<Prompt | null>(null);
     const selectedPromptRef = React.useRef<Prompt | null>(null);
-    const { pauseParentRefreshing, resumeParentRefreshing, eventId } = useEvent();
 
-    const handleOpen = () => {
-        setOpen(true);
-        pauseParentRefreshing();
-    };
-    const handleClose = () => {
-        setOpen(false);
-        resumeParentRefreshing();
-    };
+    const handleOpen = () => setOpen(true);
+    const handleClose = () => setOpen(false);
 
     const handlePromptClick = (prompt: Prompt) => {
         // Update the selected prompt ref
@@ -220,11 +240,21 @@ export function LiveFeedbackPromptsList({ fragmentRef, isShareResultsOpen }: Liv
         handleOpen();
     };
 
+    React.useEffect(() => {
+        refresh();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     return (
-        <React.Fragment>
-            <SubmitLiveFeedbackPrompt eventId={eventId} connections={connections} />
+        <Grid container direction='column' alignItems='center'>
+            <SubmitLiveFeedbackPrompt connections={connections} selectedTab={selectedTab} />
             <Typography variant='h6'>Select view on a prompt to see its responses</Typography>
-            <PromptList prompts={prompts} handleClick={handlePromptClick} />
+            <PromptList
+                prompts={prompts}
+                handleClick={handlePromptClick}
+                selectedTab={selectedTab}
+                setSelectedTab={setSelectedTab}
+            />
             <FeedbackResponsesDialog
                 open={open}
                 handleClose={handleClose}
@@ -232,6 +262,6 @@ export function LiveFeedbackPromptsList({ fragmentRef, isShareResultsOpen }: Liv
                 selectedPrompt={selectedPrompt}
                 setSelectedPrompt={setSelectedPrompt}
             />
-        </React.Fragment>
+        </Grid>
     );
 }

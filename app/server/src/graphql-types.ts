@@ -359,6 +359,7 @@ export type Mutation = {
     createFeedbackDM: EventFeedbackMutationResponse;
     createFeedbackPrompt: EventFeedbackPromptMutationResponse;
     shareFeedbackPromptDraft: EventFeedbackPromptMutationResponse;
+    reshareFeedbackPrompt: EventFeedbackPromptMutationResponse;
     createFeedbackPromptResponse: EventFeedbackPromptResponseMutationResponse;
     shareFeedbackPromptResults: EventFeedbackPromptMutationResponse;
     submitPostEventFeedback: PostEventFeedbackMutationResponse;
@@ -535,6 +536,10 @@ export type MutationshareFeedbackPromptDraftArgs = {
     promptId: Scalars['ID'];
 };
 
+export type MutationreshareFeedbackPromptArgs = {
+    promptId: Scalars['ID'];
+};
+
 export type MutationcreateFeedbackPromptResponseArgs = {
     input: CreateFeedbackPromptResponse;
 };
@@ -550,8 +555,7 @@ export type MutationsubmitPostEventFeedbackArgs = {
 };
 
 export type MutationgenerateViewpointsArgs = {
-    eventId: Scalars['ID'];
-    promptId: Scalars['ID'];
+    input: GenerateViewpointsInput;
 };
 
 export type MutationcreateInviteArgs = {
@@ -802,6 +806,7 @@ export type Event = Node & {
     topics?: Maybe<Array<EventTopic>>;
     eventType?: Maybe<Scalars['String']>;
     googleMeetUrl?: Maybe<Scalars['String']>;
+    googleMeetSpace?: Maybe<Scalars['String']>;
 };
 
 export type EventquestionsArgs = {
@@ -945,7 +950,7 @@ export type Subscription = {
     broadcastMessageCreated: EventBroadcastMessageEdgeContainer;
     broadcastMessageDeleted: EventBroadcastMessageEdgeContainer;
     feedbackCRUD: FeedbackOperation;
-    feedbackPrompted: EventLiveFeedbackPrompt;
+    feedbackPrompted: EventLiveFeedbackPromptEdge;
     feedbackPromptResultsShared: EventLiveFeedbackPrompt;
     /** Subscribes to the creation of invites for a given event. */
     userInvited: UserEdgeContainer;
@@ -1387,6 +1392,12 @@ export type Votes = {
     for: Scalars['Int'];
     against: Scalars['Int'];
     conflicted: Scalars['Int'];
+};
+
+export type GenerateViewpointsInput = {
+    eventId: Scalars['ID'];
+    promptId: Scalars['ID'];
+    isForcedRegenerate?: InputMaybe<Scalars['Boolean']>;
 };
 
 export type CreateInvite = {
@@ -2025,6 +2036,7 @@ export type ResolversTypes = {
     CreateFeedbackPrompt: CreateFeedbackPrompt;
     CreateFeedbackPromptResponse: CreateFeedbackPromptResponse;
     Votes: ResolverTypeWrapper<Votes>;
+    GenerateViewpointsInput: GenerateViewpointsInput;
     CreateInvite: CreateInvite;
     ValidateInvite: ValidateInvite;
     InviteMutationResponse: ResolverTypeWrapper<InviteMutationResponse>;
@@ -2205,6 +2217,7 @@ export type ResolversParentTypes = {
     CreateFeedbackPrompt: CreateFeedbackPrompt;
     CreateFeedbackPromptResponse: CreateFeedbackPromptResponse;
     Votes: Votes;
+    GenerateViewpointsInput: GenerateViewpointsInput;
     CreateInvite: CreateInvite;
     ValidateInvite: ValidateInvite;
     InviteMutationResponse: InviteMutationResponse;
@@ -2721,6 +2734,12 @@ export type MutationResolvers<
         ContextType,
         RequireFields<MutationshareFeedbackPromptDraftArgs, 'promptId'>
     >;
+    reshareFeedbackPrompt?: Resolver<
+        ResolversTypes['EventFeedbackPromptMutationResponse'],
+        ParentType,
+        ContextType,
+        RequireFields<MutationreshareFeedbackPromptArgs, 'promptId'>
+    >;
     createFeedbackPromptResponse?: Resolver<
         ResolversTypes['EventFeedbackPromptResponseMutationResponse'],
         ParentType,
@@ -2743,7 +2762,7 @@ export type MutationResolvers<
         ResolversTypes['EventFeedbackPromptMutationResponse'],
         ParentType,
         ContextType,
-        RequireFields<MutationgenerateViewpointsArgs, 'eventId' | 'promptId'>
+        RequireFields<MutationgenerateViewpointsArgs, 'input'>
     >;
     createInvite?: Resolver<
         ResolversTypes['InviteMutationResponse'],
@@ -3095,6 +3114,7 @@ export type EventResolvers<
     topics?: Resolver<Maybe<Array<ResolversTypes['EventTopic']>>, ParentType, ContextType>;
     eventType?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
     googleMeetUrl?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+    googleMeetSpace?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
     __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -3187,7 +3207,7 @@ export type SubscriptionResolvers<
         RequireFields<SubscriptionfeedbackCRUDArgs, 'eventId'>
     >;
     feedbackPrompted?: SubscriptionResolver<
-        ResolversTypes['EventLiveFeedbackPrompt'],
+        ResolversTypes['EventLiveFeedbackPromptEdge'],
         'feedbackPrompted',
         ParentType,
         ContextType,
@@ -4238,6 +4258,7 @@ export interface Loaders<TContext = import('mercurius').MercuriusContext & { rep
         topics?: LoaderResolver<Maybe<Array<EventTopic>>, Event, {}, TContext>;
         eventType?: LoaderResolver<Maybe<Scalars['String']>, Event, {}, TContext>;
         googleMeetUrl?: LoaderResolver<Maybe<Scalars['String']>, Event, {}, TContext>;
+        googleMeetSpace?: LoaderResolver<Maybe<Scalars['String']>, Event, {}, TContext>;
     };
 
     EventEdge?: {

@@ -198,6 +198,7 @@ export type Event = Node & {
   /** The planned end date time string */
   endDateTime?: Maybe<Scalars['Date']>;
   eventType?: Maybe<Scalars['String']>;
+  googleMeetSpace?: Maybe<Scalars['String']>;
   googleMeetUrl?: Maybe<Scalars['String']>;
   id: Scalars['ID'];
   /** List of users who can view event when private */
@@ -720,6 +721,12 @@ export type FeedbackOperation = {
   operationType: Operation;
 };
 
+export type GenerateViewpointsInput = {
+  eventId: Scalars['ID'];
+  isForcedRegenerate?: InputMaybe<Scalars['Boolean']>;
+  promptId: Scalars['ID'];
+};
+
 export type GeneratedTopic = {
   __typename?: 'GeneratedTopic';
   description: Scalars['String'];
@@ -838,6 +845,7 @@ export type Mutation = {
    * returns false if an account with the provided email cannot be found
    */
   resetPasswordRequest: ResetPasswordRequestMutationResponse;
+  reshareFeedbackPrompt: EventFeedbackPromptMutationResponse;
   shareFeedbackPromptDraft: EventFeedbackPromptMutationResponse;
   shareFeedbackPromptResults: EventFeedbackPromptMutationResponse;
   /** Start the event so that it is "live" */
@@ -1031,8 +1039,7 @@ export type MutationGenerateEventTopicsArgs = {
 
 
 export type MutationGenerateViewpointsArgs = {
-  eventId: Scalars['ID'];
-  promptId: Scalars['ID'];
+  input: GenerateViewpointsInput;
 };
 
 
@@ -1133,6 +1140,11 @@ export type MutationResetPasswordArgs = {
 
 export type MutationResetPasswordRequestArgs = {
   input: ResetPasswordRequestForm;
+};
+
+
+export type MutationReshareFeedbackPromptArgs = {
+  promptId: Scalars['ID'];
 };
 
 
@@ -1522,7 +1534,7 @@ export type Subscription = {
   eventUpdates: Event;
   feedbackCRUD: FeedbackOperation;
   feedbackPromptResultsShared: EventLiveFeedbackPrompt;
-  feedbackPrompted: EventLiveFeedbackPrompt;
+  feedbackPrompted: EventLiveFeedbackPromptEdge;
   /** subscription for whenever a new org is added */
   orgUpdated: OrganizationSubscription;
   participantMuted?: Maybe<Scalars['Boolean']>;

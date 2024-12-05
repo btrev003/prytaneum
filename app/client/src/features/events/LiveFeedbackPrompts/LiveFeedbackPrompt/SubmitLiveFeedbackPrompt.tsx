@@ -11,12 +11,8 @@ import { LiveFeedbackPromptForm, TLiveFeedbackPromptFormState } from './LiveFeed
 import { useSnack } from '@local/core';
 import { FEEDBACK_PROMPT_MAX_LENGTH } from '@local/utils/rules';
 import { isURL } from '@local/utils';
-
-interface Props {
-    className?: string;
-    eventId: string;
-    connections: string[];
-}
+import type { FeedbackDashboardTab } from './LiveFeedbackPromptList';
+import { useEvent } from '@local/features/events';
 
 export const SUBMIT_LIVE_FEEDBACK_PROMPT_MUTATION = graphql`
     mutation SubmitLiveFeedbackPromptMutation($input: CreateFeedbackPrompt!, $connections: [ID!]!) {
@@ -41,9 +37,16 @@ export const SUBMIT_LIVE_FEEDBACK_PROMPT_MUTATION = graphql`
     }
 `;
 
-export function SubmitLiveFeedbackPrompt({ className, eventId, connections }: Props) {
+interface Props {
+    className?: string;
+    connections: string[];
+    selectedTab: FeedbackDashboardTab;
+}
+
+export function SubmitLiveFeedbackPrompt({ className, connections, selectedTab }: Props) {
     const [isOpen, open, close] = useResponsiveDialog();
     const { user } = useUser();
+    const { eventId } = useEvent();
     const { displaySnack } = useSnack();
     const [commit] = useMutation<SubmitLiveFeedbackPromptMutation>(SUBMIT_LIVE_FEEDBACK_PROMPT_MUTATION);
 
@@ -75,7 +78,7 @@ export function SubmitLiveFeedbackPrompt({ className, eventId, connections }: Pr
         <React.Fragment>
             <ResponsiveDialog open={isOpen} onClose={close}>
                 <DialogContent>
-                    <LiveFeedbackPromptForm onCancel={close} onSubmit={handleSubmit} />
+                    <LiveFeedbackPromptForm onCancel={close} onSubmit={handleSubmit} selectedTab={selectedTab} />
                 </DialogContent>
             </ResponsiveDialog>
 

@@ -18,6 +18,7 @@ import { PreloadedActionsPanels } from './ActionsPanels';
 import { QuestionModerationPanels } from './QuestionModerationPanels';
 import { VerticalPanelResizeHandle } from '@local/components/PanelHandle';
 import { useUser } from '@local/features/accounts';
+import { useEventUpdates } from '@local/features/dashboard/useEventUpdates';
 
 export const EVENT_LIVE_MODERATOR_VIEW_QUERY = graphql`
     query EventLiveNewModeratorViewQuery($eventId: ID!, $userLang: String!) {
@@ -59,22 +60,13 @@ interface EventLiveProps {
 function EventLiveNewModeratorView({ node, refresh }: EventLiveProps) {
     const theme = useTheme();
     const isXlDownBreakpoint = useMediaQuery(theme.breakpoints.down('xl')); // Below 1080p (likely 720p)
-    const { eventData, pauseEventDetailsRefresh, resumeEventDetailsRefresh } = useEventDetails({
+    const { eventData } = useEventDetails({
         fragmentRef: node,
     });
     const { id: eventId } = node;
 
-    const { pausePingEvent, resumePingEvent } = usePingEvent(eventId);
-
-    const pauseParentRefreshing = React.useCallback(() => {
-        pauseEventDetailsRefresh();
-        pausePingEvent();
-    }, [pauseEventDetailsRefresh, pausePingEvent]);
-
-    const resumeParentRefreshing = React.useCallback(() => {
-        resumeEventDetailsRefresh();
-        resumePingEvent();
-    }, [resumeEventDetailsRefresh, resumePingEvent]);
+    usePingEvent(eventId);
+    useEventUpdates();
 
     // TODO: Improve suspense loading with skeletons that match the panel sizes
     return (
@@ -82,8 +74,7 @@ function EventLiveNewModeratorView({ node, refresh }: EventLiveProps) {
             value={{
                 eventId: node.id,
                 isModerator: Boolean(node.isViewerModerator),
-                pauseParentRefreshing,
-                resumeParentRefreshing,
+                eventData,
             }}
         >
             <PanelGroup direction='horizontal'>

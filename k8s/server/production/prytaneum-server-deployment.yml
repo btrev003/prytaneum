@@ -23,7 +23,7 @@ spec:
         spec:
             containers:
                 - name: prytaneum-server
-                  image: gcr.io/PROJECT_ID/SERVER_IMAGE:TAG
+                  image: GOOGLE_ARTIFACT_REPO/SERVER_IMAGE:TAG
                   imagePullPolicy: IfNotPresent
                   resources:
                       limits:
@@ -107,6 +107,16 @@ spec:
                             secretKeyRef:
                                 key: redis-password
                                 name: prod-redis-cluster
+                      - name: COOKIE_SECRET
+                        valueFrom:
+                            secretKeyRef:
+                                key: cookie
+                                name: prytaneum-client-secrets
+                      - name: JWT_SECRET
+                        valueFrom:
+                            secretKeyRef:
+                                key: jwt
+                                name: prytaneum-client-secrets
                       - name: 'GOOGLE_APPLICATION_CREDENTIALS'
                         value: '/var/secrets/google/key.json'
                   volumeMounts:

@@ -14,7 +14,7 @@ const toEventId = toGlobalId('Event');
 export async function findBroadcastMessagesByEventId(eventId: string, prisma: PrismaClient) {
     return prisma.eventBroadcastMessage.findMany({
         where: { eventId, isVisible: true },
-        orderBy: { createdAt: 'asc' },
+        orderBy: { createdAt: 'desc' },
     });
 }
 
@@ -83,6 +83,7 @@ export async function createEvent(userId: string, prisma: PrismaClient, input: C
         issue: '',
         eventType: 'NO_VIDEO',
         googleMeetUrl: '',
+        googleMeetSpace: '',
     };
 
     const result = await prisma.event.create({
